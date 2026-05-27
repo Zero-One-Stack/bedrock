@@ -1,0 +1,247 @@
+# Rule: Data Layer (within FSD segments)
+
+> **Non-negotiable.** Data lives in the **`api/` and `model/` segments** of the slice that owns it,
+> and reaches components only through the slice's public API. **Reads down, writes up:** entity
+> queries fetch (high, in RSC) and pass data down as props; feature Server Actions mutate and
+> invalidate. Server state = React Query / RSC; client state = React primitives. **No Effector. No
+> global server-state stores.** Placement is governed by `feature-sliced-design.md`; this file is the
+> file-per-concern data contract.
+
+## Where data lives (the FSD answer)
+
+| Kind of data code | Segment | Why |
+| --- | --- | --- |
+| **Reads** of a domain model (`getEmployee`, `listGrievances`) | `entities/<model>/api/` | The model owns its own queries; pages/widgets call them and render. |
+| **Writes** (mutations) for an action | `features/<action>/api/` | Mutations are the feature's job; only features may POST/PUT/PATCH/DELETE. |
+| The model's **schemas + types** (source of truth) | `entities/<model>/model/` | Zod schema + `z.infer` types live with the entity. |
+| Form state + validation for an action | `features/<action>/model/` | A feature owns its form, schema, and hooks. |
+| The **base fetch client / query-client** | `shared/api/` | Business-agnostic transport; configured once. |
+| Cross-cutting client cache hooks | the consuming slice's `model/` | React Query hooks wrapping entity/feature api fns. |
+
+> **There is no top-level `services/` bucket in FSD.** A "service" is just an entity's `api/`
+> (reads) or a feature's `api/` (writes). Truly generic transport is `shared/api`. If you're tempted
+> to put a *domain* read in `shared`, it belongs in the **entity** instead — `shared` is business-agnostic.
+
+> **Paths/aliases are repo-specific.** `@/entities/…`, `@/features/…`, `@/shared/…`, `src/…` below
+> are illustrative. Read `tsconfig.json` `compilerOptions.paths` for the real aliases (Recon, Step 0).
+> A slice's api is imported via the slice's **public API barrel**, never a deep path.
+
+Files are **kebab-case throughout** — including the endpoints file. Every file ends in the role
+suffix shown below (`.endpoints.ts`, `.api.ts`, `.queries.ts`, `.action.ts`, …). No camelCase filenames.
+
+## State boundaries (memorize)
+
+| Kind of state            | Where it lives                          |
+| ------------------------ | --------------------------------------- |
+| Remote/server data       | **React Query** (`useQuery`/`useMutation`) or RSC fetch in pages/widgets |
+| Form state               | **React Hook Form** (+ Zod), in the feature's `model/` |
+| Ephemeral UI/local state | `useState` / `useReducer`               |
+| Shared client state      | React **Context** (in `app/` providers), sparingly |
+| ❌ Anything in Effector   | **Banned.** Do not introduce it.        |
+
+Never copy server data into client state. Read it from the query cache (or receive it as RSC props).
+
+## Reads down, writes up (the FSD + App Router data flow)
+
+```
+                 ┌─────────────────────────── pages / widgets (Server Components) ───────────────────────────┐
+   FETCH (RSC) → │ call entity query fns (entities/<x>/api) → pass plain data DOWN as props                  │
+                 └───────────────────────────────────────────┬──────────────────────────────────────────────┘
+                                                              │ props
+                 ┌────────────────────────────────────────────▼──────────────────────────────────────────────┐
+                 │ entities/<x>/ui  (read-only display)   features/<y>/ui  ('use client' action leaf)          │
+                 └────────────────────────────────────────────┬──────────────────────────────────────────────┘
+                                                               │ user acts
+   MUTATE (up) ←  features/<y>/api  Server Action  →  revalidatePath/Tag (or React Query invalidate)
+                                                               │
+                                                               └→ top-of-tree re-fetches → fresh data flows back down
+```
+
+## Entity reads — `entities/<model>/api/` (RSC-first)
+
+```
+entities/employee/
+├── api/
+│   ├── employee.endpoints.ts   # path constants
+│   ├── employee.api.ts         # transport: fetch fns returning Zod-validated data. No React.
+│   ├── employee.queries.ts     # server query fns for RSC (getEmployee, listEmployees) + React Query hooks
+│   ├── employee.mock.ts        # mock responses for tests/stories/MSW
+│   └── employee.msw.ts         # MSW handlers built from endpoints + mocks
+├── model/
+│   └── employee.ts             # Zod schema (source of truth) + z.infer types
+├── ui/                         # read-only views: <EmployeeCard> — NO action buttons
+└── index.ts                    # public API: export the types, queries/hooks, and read-only UI
+```
+
+## Feature writes — `features/<action>/api/` (the only layer that mutates)
+
+```
+features/file-grievance/
+├── api/
+│   └── file-grievance.action.ts   # Server Action: validate input → mutate → revalidatePath/Tag
+├── model/
+│   ├── schema.ts                  # Zod schema for the form payload
+│   └── use-file-grievance.ts      # RHF + (optional) React Query useMutation
+├── ui/
+│   └── file-grievance-form.tsx    # 'use client' — the action leaf
+└── index.ts                       # public API: export the form/button + the action
+```
+
+The `/scaffold-service` skill generates the read (entity) or write (feature) set, placed correctly.
+
+## Templates
+
+> These are **generic patterns, not real code.** Substitute your own names: `<model>` / `<action>` =
+> the slice in kebab-case (the folder/file stem), `<Entity>` = the PascalCase domain type. Filenames
+> in headings are the canonical kebab-case form. Cross-folder imports use the repo's real alias (Recon).
+
+### `model/<model>.ts` — Zod is the source of truth (entity layer)
+
+Derive TS types from schemas; validate at the boundary. **Verify Zod's current API for the installed
+major version before using it** (Recon → check `package.json`): Zod's string-format helpers moved
+across versions — e.g. `z.string().datetime()` (v3) became top-level `z.iso.datetime()` /
+`z.iso.date()` in v4. Confirm via Context7/official docs, don't assume.
+
+```ts
+import { z } from 'zod';
+
+export const EmployeeSchema = z.object({
+  id: z.string(),
+  // …domain fields…
+  status: z.enum(['active', 'inactive']),
+});
+export type Employee = z.infer<typeof EmployeeSchema>;
+```
+
+### `api/<model>.endpoints.ts`
+
+```ts
+const BASE = '/api/<model>';
+export const ENDPOINTS = {
+  LIST: BASE,
+  BY_ID: (id: string) => `${BASE}/${id}`,
+  CREATE: BASE,
+} as const;
+```
+
+### `api/<model>.api.ts` — transport only (no React, importable from server or client)
+
+```ts
+import { ENDPOINTS } from './<model>.endpoints';
+import { EmployeeSchema, type Employee } from '../model/<model>';
+
+export async function fetchEmployees(): Promise<Employee[]> {
+  const res = await fetch(ENDPOINTS.LIST);
+  if (!res.ok) throw new Error(`Failed to load employees: ${res.status}`);
+  return EmployeeSchema.array().parse(await res.json()); // validate at the boundary
+}
+```
+
+### `api/<model>.queries.ts` — RSC query fns + React Query hooks (entity layer)
+
+The page (Server Component) calls the plain `getX` fn; client components use the hook. Components
+import these via the entity's public API.
+
+```ts
+import { useQuery } from '@tanstack/react-query';
+import { fetchEmployees } from './<model>.api';
+
+// Server-side (RSC): call directly in a page/widget Server Component.
+export const listEmployees = () => fetchEmployees();
+
+// Stable, namespaced query keys for the client cache.
+export const employeeKeys = {
+  all: ['<model>'] as const,
+  list: () => [...employeeKeys.all, 'list'] as const,
+};
+
+// Client-side: live/interactive reads.
+export const useEmployees = () =>
+  useQuery({ queryKey: employeeKeys.list(), queryFn: fetchEmployees });
+```
+
+### `api/<action>.action.ts` — the feature's Server Action (the only place that mutates)
+
+```ts
+'use server';
+import { revalidatePath } from 'next/cache';
+import { CreateGrievanceSchema } from '../model/schema';
+import { ENDPOINTS } from '@/entities/grievance'; // or the feature's own endpoints
+
+export async function fileGrievance(input: unknown) {
+  const data = CreateGrievanceSchema.parse(input); // validate at the boundary
+  const res = await fetch(ENDPOINTS.CREATE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to file grievance: ${res.status}`);
+  revalidatePath('/active-grievances'); // top-of-tree re-fetches and flows fresh data down
+  return EmployeeSchema; // return what the UI needs
+}
+```
+
+### `api/<model>.mock.ts` + `api/<model>.msw.ts`
+
+```ts
+// <model>.mock.ts
+import type { Employee } from '../model/<model>';
+export const mockEmployees: Employee[] = [
+  { id: '1', status: 'active' /* …domain fields… */ },
+];
+
+// <model>.msw.ts (MSW 2.x syntax — verify the installed MSW major)
+import { http, HttpResponse } from 'msw';
+import { ENDPOINTS } from './<model>.endpoints';
+import { mockEmployees } from './<model>.mock';
+
+export const handlers = [
+  http.get(ENDPOINTS.LIST, () => HttpResponse.json(mockEmployees)),
+  http.post(ENDPOINTS.CREATE, () => HttpResponse.json(mockEmployees[0], { status: 201 })),
+];
+```
+
+## Forms: React Hook Form + Zod (inside the feature's `model/`)
+
+A feature **self-contains** its form state, validation schema, and hooks — the schema does **not** go
+in `shared`. Reuse the entity's schema when the form maps to a domain payload (import it from the
+entity's public API). Import the schema and the action **via the slice's barrel through the repo's
+real alias** — `<alias>/…` below is illustrative (Recon).
+
+```tsx
+'use client';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+// from the feature's own model + the entity's public schema:
+import { CreateGrievanceSchema, type CreateGrievanceInput } from '../model/schema';
+import { fileGrievance } from '../api/file-grievance.action';
+
+export function FileGrievanceForm() {
+  const { register, handleSubmit, formState: { errors } } =
+    useForm<CreateGrievanceInput>({ resolver: zodResolver(CreateGrievanceSchema) });
+
+  return (
+    <form onSubmit={handleSubmit((values) => fileGrievance(values))}>
+      {/* fields built from shared/ui atoms/molecules; surface errors[...] as errorText */}
+    </form>
+  );
+}
+```
+
+## Hard rules
+
+- ❌ **No Effector** or any external server-state store.
+- ❌ **Mutations outside a feature** — entities and widgets never POST/PUT/PATCH/DELETE; only features do.
+- ❌ A **domain read in `shared`** — it belongs in the entity's `api/`. `shared/api` is the generic client only.
+- ❌ A **form schema in `shared`** — it lives in the owning feature's `model/`.
+- ❌ Components calling `fetch` directly, or importing a slice's api by deep path. Go through the slice's public API.
+- ❌ Untyped responses. Validate with Zod at the api boundary.
+- ✅ Reads in entity `api/` (RSC `getX` + React Query hook); writes in feature `api/` (Server Action) that invalidate.
+- ✅ Stable, namespaced query keys (`xKeys` object); one Zod schema per shape; derive types via `z.infer`.
+- ✅ Reads flow down as props; writes flow up then re-fetch at the top.
+
+## Sources
+- [FSD — Slices and segments (api / model)](https://feature-sliced.design/docs/reference/slices-segments)
+- [FSD — The Ultimate Next.js App Router Architecture (entity queries, feature actions)](https://feature-sliced.design/blog/nextjs-app-router-guide)
+- [Next.js — Server Actions and Mutations](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
+- [TanStack Query — Query keys & invalidation](https://tanstack.com/query/latest/docs/framework/react/guides/query-invalidation)

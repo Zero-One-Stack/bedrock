@@ -1,0 +1,28 @@
+{
+  "//": "Enterprise enforcement hooks. Wire into a project's .claude/settings.json (merge the 'hooks' key) or ship via the plugin. ${CLAUDE_PLUGIN_ROOT} resolves to the plugin dir when installed as a plugin; use an absolute path or ${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts otherwise. Hooks run deterministically — they enforce what the model might skip.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/session-context.sh\"" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/block-banned-patterns.sh\"" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/audit-log.sh\"" }
+        ]
+      }
+    ]
+  }
+}

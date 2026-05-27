@@ -1,0 +1,13 @@
+{
+  "//": "Marketplace root = Claude-Kits/. One unified kit. Install: /plugin marketplace add <git-url> then /plugin install bedrock@zos → /bedrock:kit-init (+ /bedrock:enterprise-init for the governance/CI/ADR layer). 'source' resolves relative to this marketplace root (no '../').",
+  "name": "zos",
+  "owner": { "name": "Zero One Stack" },
+  "plugins": [
+    {
+      "name": "bedrock",
+      "description": "Bedrock — the Zero One Stack Next.js/React engineering kit, built on Feature-Sliced Design (FSD). One standard: constitution + rules + agents + scaffolding skills, plus enterprise governance (managed-settings, hooks, ADRs, tech-radar, Steiger/dependency-cruiser CI fitness functions, policy-as-code). kit-init installs the constitution; enterprise-init wires the governance/CI/ADR pieces.",
+      "source": "./bedrock",
+      "homepage": "https://github.com/Zero-One-Stack/bedrock"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "//": "ORG-LOCKED tier. Deploy to the OS managed-settings path (see managed-settings/README.md) so projects INHERIT and CANNOT WEAKEN these. This is the 'small set of non-negotiable controls at the top, everything else delegated' model from the governance research. Tune to your org before deploying.",
+
+  "permissions": {
+    "//deny": "Default-deny the genuinely dangerous + exfiltration-prone. Agents treated as untrusted contributors.",
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(curl * | sh)",
+      "Bash(curl * | bash)",
+      "Bash(:(){ :|:& };:)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/*.pem)",
+      "Read(**/id_rsa*)",
+      "Read(**/.aws/**)",
+      "Read(**/.ssh/**)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(npm publish *)",
+      "Bash(pnpm publish *)",
+      "WebFetch"
+    ]
+  },
+
+  "//enforcement": "These keys are honored ONLY in managed-settings (an org admin sets them; users/projects cannot override).",
+  "disableBypassPermissionsMode": "disable",
+  "allowManagedPermissionRulesOnly": false,
+
+  "//mcp": "Standardize external integrations: only approved MCP servers may be added.",
+  "allowedMcpServers": [],
+  "deniedMcpServers": [],
+
+  "env": {
+    "//": "Org-wide env the agent + hooks can read. Do not put secrets here unless this file is itself access-controlled.",
+    "ZOS_KIT": "bedrock"
+  }
+}

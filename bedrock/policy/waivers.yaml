@@ -1,0 +1,22 @@
+# Waivers — the ONLY sanctioned way to deviate from a policy gate (rules/governance.md).
+# Every waiver is EXPLICIT, dated, approved, and EXPIRING. An expired waiver fails CI (the warn→
+# expired rule), so debt stays visible and can't become permanent by neglect. Pair each waiver
+# with an ADR (the durable "why") and a row in rules/project-specifics.md → Approved overrides.
+#
+# Leave the lists empty in the template; projects add entries as real exceptions arise.
+
+# Temporarily allow a constitution-banned dependency (e.g. during a migration off Chakra).
+banned_dep_waivers: []
+  # - dep: "@chakra-ui/react"
+  #   reason: "Legacy features/legacy/* not yet migrated; removing in the Q3 design-system pass."
+  #   approver: "peony"
+  #   expires: "2026-09-30"          # YYYY-MM-DD — CI fails this gate once past this date
+  #   adr: "docs/adr/0007-chakra-migration-timeline.md"
+
+# Allow an intentionally pinned version (rare — e.g. a known-broken latest).
+pin_waivers: []
+  # - dep: "some-lib"
+  #   reason: "Pinned to 2.3.1; 2.4.0 has a regression tracked upstream in #123."
+  #   approver: "peony"
+  #   expires: "2026-07-01"
+  #   adr: "docs/adr/0008-pin-some-lib.md"

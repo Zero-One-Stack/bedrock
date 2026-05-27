@@ -1,0 +1,152 @@
+# Enterprise CI gate — the constitution as build-breaking fitness functions + supply-chain + a11y.
+# Copy to .github/workflows/ci.yml and adapt script names/package manager to the repo (Recon).
+# Every standard here is a TEST, not a wiki page — a red gate blocks merge (the anti-drift mechanism).
+name: CI (enterprise)
+on:
+  pull_request: {}
+  push: { branches: [main] }
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+
+      # --- Constitution as fitness functions (build-breaking) ---
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Lint (incl. import/no-cycle + boundary rules)
+        run: pnpm lint
+      - name: Format check
+        run: pnpm format:check
+      - name: FSD architecture (Steiger — official Feature-Sliced Design linter)
+        run: pnpm steiger ./src
+      - name: Layer direction + public-API barrier + no cycles (dependency-cruiser)
+        run: npx depcruise src --config .dependency-cruiser.cjs
+      - name: Token coverage (no literal design values)
+        run: bash ci/fitness/check-token-coverage.sh src
+      - name: Unit / integration (coverage gate)
+        run: pnpm test
+      - name: Build
+        run: pnpm build
+      - name: Bundle budget
+        run: pnpm size-limit   # configure size-limit in package.json; fails if a budget is exceeded
+
+      # --- Web Vitals + Accessibility: WCAG 2.1 AA legal floor (EAA/ADA/AODA) ---
+      - name: E2E (Playwright)
+        run: pnpm exec playwright install --with-deps && pnpm e2e
+      - name: Lighthouse CI (Web Vitals budget + a11y ≥ 0.95)
+        run: npx @lhci/cli autorun --config=ci/fitness/lighthouserc.json
+      # Visual regression: enable once baselines are stable (Playwright toHaveScreenshot or Chromatic).
+      #   run: pnpm exec playwright test --grep @visual
+
+  supply-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+
+      # --- Dependency governance + SBOM (CRA/EO-14028 expectation) ---
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=high
+      - name: Generate CycloneDX SBOM
+        run: npx @cyclonedx/cyclonedx-npm --output-file sbom.json
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with: { name: sbom, path: sbom.json }
+      # Dependency policy gate: banned deps (Chakra/Effector/…), pinned versions, expired waivers.
+      # Deviations live in policy/waivers.yaml as dated, expiring entries (see policy/README.md).
+      - name: Dependency policy (Conftest / OPA)
+        uses: instrumenta/conftest-action@master
+        with:
+          files: package.json
+          policy: policy/
+          # data: policy/waivers.yaml   # uncomment if your action version supports --data
+
+  adr-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Architecture-touching PRs must reference an ADR
+        shell: bash
+        run: |
+          base="origin/${{ github.base_ref }}"
+          changed="$(git diff --name-only "$base"...HEAD)"
+          # Paths that imply an architecture decision — tune to the repo.
+          # A slice's public API (index.ts) is its contract; an @x cross-import is a new coupling;
+          # a new entity/feature/widget slice or workspace config is a structural decision.
+          if echo "$changed" | grep -qE '(src/(entities|features|widgets)/[^/]+/index\.ts|src/entities/[^/]+/@x/|monorepo|nx\.json|tsconfig\.base)'; then
+            if echo "$changed" | grep -q '^docs/adr/[0-9]' || \
+               git log "$base"...HEAD --format=%B | grep -qiE 'adr[- ]?[0-9]{3,4}|docs/adr/'; then
+              echo "ADR referenced ✓"
+            else
+              echo "::error::This PR touches architecture-tagged paths but references no ADR. Add docs/adr/NNNN (see rules/adr.md)."
+              exit 1
+            fi
+          else
+            echo "No architecture-tagged paths changed; ADR not required."
+          fi
+
+  # Multi-team governance (team-ownership.md, contracts-and-versioning.md).
+  # Remove this job in a single-team repo. Branch protection's "require review from Code Owners"
+  # is the real ownership teeth — these are the supporting fitness functions.
+  governance-checks:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      # team-ownership.md: every changed path must have a CODEOWNERS owner (a default '*' owner
+      # makes this pass for owned-by-default repos; it fails only on a genuinely unowned path).
+      - name: Every changed path is owned (CODEOWNERS)
+        shell: bash
+        run: |
+          owners_file=""
+          for c in CODEOWNERS .github/CODEOWNERS docs/CODEOWNERS; do
+            [ -f "$c" ] && owners_file="$c" && break
+          done
+          if [ -z "$owners_file" ]; then
+            echo "::error::No CODEOWNERS file. Multi-team repos must own every path (team-ownership.md)."
+            exit 1
+          fi
+          # A default '*' rule means nothing is unowned — the recommended floor.
+          if ! grep -qE '^\*\s+@' "$owners_file"; then
+            echo "::warning::$owners_file has no default '*' owner; unmatched paths are review holes (team-ownership.md)."
+          fi
+          echo "CODEOWNERS present ✓ ($owners_file). Code-Owner review is enforced by branch protection."
+
+      # contracts-and-versioning.md: a touched shared contract must bump its package version
+      # (semver) — a changed public API on the same version breaks consumers who pinned it.
+      # Tune the contract globs to the repo (shared packages / the contracts package / zone exports).
+      - name: Shared-contract change bumps a version
+        shell: bash
+        run: |
+          base="origin/${{ github.base_ref }}"
+          changed="$(git diff --name-only "$base"...HEAD)"
+          # Illustrative contract paths — tune to the repo (Recon). In FSD, a slice's index.ts and an
+          # entity's model schema/@x API are the contracts consumers depend on.
+          contract_re='(packages/contracts/|src/shared/(ui|api)/.*/index\.ts|src/entities/[^/]+/(index\.ts|@x/|model/.*\.ts)|.*/module-federation\.config\.)'
+          if echo "$changed" | grep -qE "$contract_re"; then
+            if echo "$changed" | grep -qE '(package\.json|CHANGELOG)' && \
+               git diff "$base"...HEAD -- '**/package.json' | grep -qE '^\+.*"version":'; then
+              echo "Contract change carries a version bump ✓"
+            else
+              echo "::error::This PR changes a shared contract but bumps no package version. Use semver + expand→migrate→contract (contracts-and-versioning.md)."
+              exit 1
+            fi
+          else
+            echo "No shared-contract paths changed; version bump not required."
+          fi

@@ -1,0 +1,9 @@
+{
+  "name": "bedrock",
+  "description": "Bedrock — the Zero One Stack Next.js/React engineering kit, one unified standard built on Feature-Sliced Design (FSD). Constitution + rules (feature-sliced-design, architecture, components, tokens, a11y, testing, security, i18n, performance, observability, CI) and enterprise governance (governance, ADRs, tech-radar, compliance); agents (frontend-architect, component-builder, frontend-reviewer, monorepo-architect, adr-author); scaffolding + governance skills; enforcement hooks + Steiger/dependency-cruiser FSD fitness functions; managed-settings; policy-as-code. Auto-discovered skills/agents/commands/hooks come from the plugin; run /bedrock:kit-init to copy the CLAUDE.md constitution + rules/ into the project (plugins can't auto-load those), then /bedrock:enterprise-init to wire the governance/CI/ADR pieces.",
+  "version": "3.0.0",
+  "author": { "name": "Zero One Stack" },
+  "homepage": "https://github.com/Zero-One-Stack/bedrock",
+  "license": "MIT",
+  "keywords": ["nextjs", "react", "feature-sliced-design", "fsd", "steiger", "design-tokens", "atomic-design", "react-query", "accessibility", "governance", "adr", "enterprise", "bedrock"]
+}

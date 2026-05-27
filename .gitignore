@@ -1,0 +1,18 @@
+# OS / editor cruft
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Node (in case a kit grows tooling)
+node_modules/
+*.log
+
+# Build / cache artifacts
+out-tsc/
+coverage/
+.jest-cache/
+dist/
+
+# Agent audit log produced in consuming projects (never the kit repo itself, but guard anyway)
+.claude/audit/
