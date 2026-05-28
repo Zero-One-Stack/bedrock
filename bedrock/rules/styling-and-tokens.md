@@ -41,17 +41,72 @@ tokens/
 │   ├── radius.json
 │   ├── shadow.json
 │   ├── breakpoint.json     # --bp-sm/md/lg/xl/2xl — shared by responsive-design.md
-│   └── duration.json
-├── semantic/         # tier 2 — intent aliases referencing primitives
-│   ├── color.json          # color-bg-*, color-text-*, color-border-*, color-feedback-*
+│   ├── duration.json       # motion durations (raw ms scale)
+│   ├── easing.json         # motion easing curves (cubic-bezier)
+│   ├── elevation.json      # shadow stacks per elevation level
+│   ├── z-index.json        # stacking-order scale
+│   └── opacity.json
+├── semantic/         # tier 2 — intent aliases referencing primitives (the REQUIRED GROUPS below)
+│   ├── color.json          # color-bg-*, color-text-*, color-border-*, color-feedback-* (+ state)
 │   ├── space.json          # space-inset-*, space-stack-*
-│   └── …
+│   ├── motion.json         # motion-duration-*, motion-easing-*
+│   ├── elevation.json      # elevation-*
+│   ├── z-index.json        # z-*
+│   ├── opacity.json
+│   └── density.json        # density-*  (optional — only if the system supports compact/comfortable)
 ├── component/        # tier 3 — per-component overrides (optional)
 │   └── button.json
 ├── themes/           # light.json, dark.json, brand-x.json (override semantic tier)
 ├── config.ts         # Style Dictionary (or Terrazzo) config
 └── build output → src/styles/tokens.css  (generated :root vars; do NOT hand-edit)
 ```
+
+### Required semantic groups (the baseline every repo must ship)
+
+These groups must exist in the semantic tier on day one. Components rely on their presence
+(every hoverable atom expects `--color-bg-hover` to resolve to *something*); a missing group
+turns into per-component literal fallbacks and contrast regressions across themes. The
+required groups, the prefixes they own, and what they enable:
+
+| Required group | Token prefix(es) | What breaks if missing |
+| --- | --- | --- |
+| **Color — narrative text/bg/border** | `color-text-{default,muted,subtle,inverse}`, `color-bg-{surface,muted,subtle,canvas,inverse}`, `color-border-{default,strong,subtle}` | Body copy / cards / page surfaces — purely presentational, NO interaction state. Components hand-pick colors → contrast fails AA on theme swap. |
+| **Color — interactive surfaces** | `color-bg-{emphasis,interactive,subtle-interactive}` for buttons/inputs/links; `color-text-on-{emphasis,interactive}` for foreground on those surfaces; `color-border-interactive` for interactive borders (input, focus ring). | These ARE the interactive bases — state siblings below apply only to this group. |
+| **Color — state (hover/pressed/disabled/selected)** | For every **interactive** token in the row above, a paired `*-hover`, `*-pressed`, `*-selected`, `*-disabled` (e.g. `color-bg-emphasis-hover`, `color-text-on-emphasis-disabled`, `color-border-interactive-hover`). **Not required for narrative-base tokens** — body text doesn't have a hover state. | Every button/input invents its own `:hover` color → AA contrast lottery, dark mode breaks per-component, focus rings flicker. |
+| **Color — feedback** | `color-feedback-{info,success,warning,danger}` and `*-subtle` companions (the muted background variants) | Toast/banner/badge a11y states drift; alert UI lacks the subtle/strong pair. |
+| **Spacing** | `space-inset-{xs,sm,md,lg,xl}`, `space-stack-{xs,sm,md,lg,xl}`, `space-inline-{xs,sm,md,lg,xl}` | Mixed scales per component; nothing connects to density. |
+| **Sizing** | `size-control-{sm,md,lg}` (input/button heights), `size-icon-{xs,sm,md,lg}` | Touch targets fall below 44px (a11y violation, `accessibility.md`). |
+| **Typography** | `text-{display,heading,body,label,caption}-{sm,md,lg}` (font shorthand or font-size + line-height + weight) | Vertical rhythm breaks; type scale fights the spacing scale. |
+| **Radius** | `radius-{control,surface,pill,full}` | Every component picks a literal `border-radius` → brand inconsistency. |
+| **Motion — duration** | `motion-duration-{fast,base,slow,slower}` (e.g. 120/200/320/500 ms). Skip the `instant`/0ms level — a 0ms transition is a code smell, and `prefers-reduced-motion` is handled by `@media` overrides, not by an instant alias. | Each animation hand-picks a duration → either jittery (too fast) or sluggish (too slow). |
+| **Motion — easing** | `motion-easing-{standard,emphasized,decelerate,accelerate}` (cubic-beziers — see Material 3 / Carbon for proven curves) | Animations feel mechanical or inconsistent across components. |
+| **Elevation** | `elevation-{0,1,2,3,4,5}` (shadow stacks). **`elevation-0` resolves to `none`** — a real token that explicitly clears any inherited box-shadow (so `box-shadow: var(--elevation-0)` produces a deterministic flat surface). | Modal/popover/toast stacking visual hierarchy collapses; dark-mode overlays can't be tuned centrally. |
+| **z-index** | `z-{base,dropdown,sticky,overlay,modal,popover,toast,tooltip}` (small integer scale, NOT arbitrary numbers) | Stacking wars: dropdowns under modals, toasts behind overlays, etc. |
+| **Opacity** | `opacity-{disabled,muted,overlay,backdrop}` | Disabled states diverge per component; backdrops have no shared dim level. |
+| **Breakpoints** | `bp-{sm,md,lg,xl,2xl}` — same scale `responsive-design.md` uses. Skip `bp-xs` (the implicit mobile base IS the no-prefix default; an `xs` breakpoint adds ceremony with no real screen size below `sm` to target). | `responsive-design.md` can't share a scale across container queries and `@media`. |
+
+> **Density tokens are optional.** Only required if the product ships a density mode (compact/
+> comfortable/spacious) — then `density-{compact,comfortable,spacious}` keys flip the underlying
+> spacing/sizing tokens. See `responsive-design.md` for the application pattern.
+
+The `add-design-token` skill enforces the **state-token sibling rule** only on tokens in the
+**interactive surfaces** group (`color-bg-emphasis`, `color-bg-interactive`,
+`color-text-on-emphasis`, `color-border-interactive`, etc.). Adding one of those without the
+full state set (`-hover`, `-pressed`, `-disabled`, and where applicable `-selected`) is
+rejected. **Narrative tokens** (`color-text-default`, `color-bg-surface`,
+`color-border-default`) ship without siblings — body copy doesn't hover.
+
+### Interactive vs. narrative (the boundary the skill checks)
+
+| Group | Sibling required? | Examples |
+| --- | --- | --- |
+| **Interactive** — surfaces that participate in hover/press/focus/disabled state. | ✅ Full state set | `color-bg-emphasis`, `color-bg-interactive`, `color-text-on-emphasis`, `color-text-on-interactive`, `color-border-interactive` |
+| **Narrative** — purely presentational, no interaction state. | ❌ No siblings | `color-text-{default,muted,subtle,inverse}`, `color-bg-{surface,muted,subtle,canvas,inverse}`, `color-border-{default,strong,subtle}` |
+| **Feedback** — the subtle/strong pair *is* the state model. | ❌ No siblings | `color-feedback-{info,success,warning,danger}`, `*-subtle` |
+| **Decorative** — never consumed by an interactive component. | ❌ No siblings | `color-bg-decorative-*`, `color-text-brand-*` (when brand-only) |
+
+The skill prompts "is this an interactive surface?" before allowing a skip; the answer and the
+reason go into `project-specifics.md`.
 
 ### DTCG token shape (authoring)
 
@@ -176,8 +231,27 @@ Authoring rules for these files:
   `tokens.css`. Don't copy a `var(--…)` name from these examples — verify, or add it first.
 - ❌ **Hand-editing generated CSS.** Change the token source and regenerate.
 - ❌ **No CSS framework, Chakra `sx`, styled-components, or emotion runtime.**
+- ❌ **Missing required semantic group.** A repo without interactive-color state siblings
+  (`-hover`/`-pressed`/`-disabled`), without a motion duration+easing pair, without an
+  elevation scale, or without a named `z-{base,dropdown,sticky,overlay,modal,popover,toast,
+  tooltip}` set is not ship-ready. Will become a `/verify-build` failure once the
+  `audit-design-system` skill (M8, not yet shipped) lands.
+- ❌ **Hand-picked `:hover`/`:active`/`:disabled` colors** on an interactive component. Use
+  the `*-hover`/`*-pressed`/`*-disabled` token siblings. If a sibling is missing, add it via
+  `/add-design-token` first.
+- ❌ **Raw `z-index` literals** (`z-index: 999`) or arbitrary numbers in CSS / CSS Modules.
+  Use the `--z-*` semantic scale. (Satori-rendered files — see the carve-out above — use
+  plain JS numbers from `shared/tokens/og.ts` because Satori cannot resolve `var(--…)`.)
+- ❌ **Raw `transition`/`animation` durations or easings** (`transition: 200ms ease-in-out`)
+  in CSS. Use `--motion-duration-*` and `--motion-easing-*`. (Same Satori carve-out applies —
+  but Satori doesn't animate at all, so the rule rarely fires there.)
+- ❌ **Adding an interactive color token without its state siblings** —
+  `/add-design-token` rejects the change. Narrative/feedback/decorative tokens ship without
+  siblings; see the "Interactive vs. narrative" table.
 - ✅ **One source of truth**, three tiers, DTCG-aligned, theme = semantic overrides under a selector.
 - ✅ Add a token before using a new value (`/add-design-token`), then reference the `var(--…)`.
+- ✅ Every required semantic group is present and themable; state siblings ship together;
+  motion/elevation/z-index/opacity scales are named, not raw.
 
 ## Adding a token
 
