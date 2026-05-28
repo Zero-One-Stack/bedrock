@@ -24,6 +24,10 @@ failures. Observability is the feedback loop that keeps the other rules honest i
 
 - Wire an error tracker (commonly **Sentry**) once, at the app root, via the provider's official
   setup. Capture unhandled errors + the error-boundary catches; record release/version for triage.
+- **The tracker has one FSD home: `src/shared/lib/observability/`.** It exports a stable
+  thin wrapper (`captureException`, `captureMessage`, an optional `withScope` for tagging) the
+  rest of the codebase calls — so the underlying SDK can be swapped without touching slices.
+  `error.tsx` / `global-error.tsx` files import `captureException` from this module.
 - Capture enough context to debug (route, action) but **scrub PII** (`beforeSend` / data
   scrubbing) — no emails, tokens, health/financial data in the payload.
 - Track Core Web Vitals in the field (`performance.md`) — `next/third-parties` or the tracker's

@@ -16,3 +16,6 @@ dist/
 
 # Agent audit log produced in consuming projects (never the kit repo itself, but guard anyway)
 .claude/audit/
+
+# Per-developer local settings (auto mode allow rules, etc.) — never committed
+.claude/settings.local.json

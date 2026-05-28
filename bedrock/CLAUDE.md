@@ -83,6 +83,7 @@ The "why" and the compliant patterns for each ban are in the rule files below.
 | If you are…                                          | Read first                          |
 | ---------------------------------------------------- | ----------------------------------- |
 | **Placing ANY file — which layer/slice/segment, what may import what** | **`rules/feature-sliced-design.md`** (the architecture) |
+| **Placing a Next.js App Router file** (`error.tsx`, `loading.tsx`, `not-found.tsx`, `route.ts`, `middleware.ts`, `generateMetadata`, parallel/intercepting routes, `sitemap`/`robots`) | **`rules/nextjs-app-router-fsd.md`** |
 | Planning a feature/app before building (Phase 1)     | `rules/architecture.md` (`/architect`) |
 | Building/editing a component; its file contract      | `rules/component-structure.md`      |
 | Styling anything; adding a color/space/etc.          | `rules/styling-and-tokens.md`       |

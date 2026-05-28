@@ -42,7 +42,7 @@ Each layer is one job:
 
 | Layer | Owns | Singular unit is a… |
 | --- | --- | --- |
-| **app** | Providers (Theme/Auth/QueryClient), global CSS resets, router/entrypoint wiring. **No UI, no layout styling, no business logic.** | — (segments only) |
+| **app** | Providers (Theme/Auth/QueryClient), global CSS resets, router/entrypoint wiring. **No UI, no layout styling, no business logic** — with one documented exception: **app-wide metadata files** that don't belong to any single route or widget (Next.js `sitemap.ts`/`robots.ts`/`manifest.ts`) live in `src/app/model/` and may read from `entities/` to enumerate URLs. See `nextjs-app-router-fsd.md`. | — (segments only) |
 | **pages** | A route's screen: reads URL params, pulls server data (RSC), arranges widgets/features/entities. **No business rules.** | page slice |
 | **widgets** | A complete, self-contained block (a dashboard panel, a header) composing entities + features. May own its own store/api as of FSD v2.1. | widget slice |
 | **features** | One user-valuable **action** that mutates state (`file-grievance`, `resolve-dispute`). Owns its own form, validation schema, hooks, server action. Context-aware, **never full-screen**. | feature slice |
