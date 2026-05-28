@@ -32,10 +32,11 @@ content="${content#$'\xEF\xBB\xBF'}"
 
 block() { echo "BLOCKED (kit hard ban): $1 — see $2. Override only via a logged entry in rules/project-specifics.md." >&2; exit 2; }
 
-# Hard bans that are unambiguous from content alone:
-printf '%s' "$content" | grep -Eq "from ['\"]@chakra-ui" && block "Chakra UI import (styling-owning lib)" "rules/styling-and-tokens.md"
+# Hard bans that are unambiguous from content alone.
+# NOTE: Chakra UI / styled-components / emotion are NO LONGER banned at the kit level —
+# styling engine is a per-project choice (see rules/styling-engine.md). Only Effector remains,
+# because the server-state-store rule is architectural (services-and-data.md), not stylistic.
 printf '%s' "$content" | grep -Eq "from ['\"]effector" && block "Effector import (banned server-state store)" "rules/services-and-data.md"
-printf '%s' "$content" | grep -Eq "from ['\"](styled-components|@emotion/styled)" && block "runtime CSS-in-JS import" "rules/styling-and-tokens.md"
 
 # FSD: deep import past a slice's public API (index.ts). Importing into a slice's segment
 # (entities|features|widgets|pages)/<slice>/<segment>/... bypasses the public-API barrier.

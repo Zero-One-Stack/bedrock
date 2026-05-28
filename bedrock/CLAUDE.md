@@ -55,13 +55,13 @@ guesses, or silently deviating from the constitution is itself a violation. Clos
 ## Hard bans (a reviewer fails the change on any of these)
 
 - ❌ **Effector** or any external/global server-state store. (Server state = React Query; local = React primitives.)
-- ❌ **Chakra UI / any component lib that owns styling**, any **CSS framework** (Tailwind/Bootstrap), and **runtime CSS-in-JS**. → CSS Modules + tokens only. **Carve-out (`component-composition.md`):** **behavior-only** headless libraries that ship no styles (Base UI, Radix Primitives, React Aria Components, Ariakit) are REQUIRED for multi-part interactive components — pick one per repo and log it in `tech-radar.md` + `project-specifics.md`.
+- 🟦 **Styling engine is a project choice, not a kit ban.** This kit is **engine-agnostic on styling** (`styling-engine.md`): CSS Modules, Tailwind, Chakra v3, vanilla-extract, Panda CSS, etc. are all valid — pick one per repo and record it in `project-specifics.md`. What the kit DOES enforce is the *architecture* around styling (FSD placement, accessibility, responsive design, observability) and a **strong recommendation** to drive any chosen engine from a single token source for theming/dark-mode/RTL durability — see `styling-and-tokens.md` (now recommended, not mandated). The legacy ban on Tailwind/Chakra/CSS-in-JS is removed. **Carve-out (`component-composition.md`):** **behavior-only** headless libraries that ship no styles (Base UI, Radix Primitives, React Aria Components, Ariakit) remain the recommended layer for multi-part interactive components — pick one per repo and log it in `tech-radar.md` + `project-specifics.md`.
 - ❌ **`any`**, and **`as` casts** without a runtime guard.
 - ❌ **Pinned versions** in code/docs, or installing non-latest without a written reason.
-- ❌ **Hardcoded design values** (hex/rgb, raw px/rem) in components → use a token.
-- ❌ **Referencing a `var(--…)` token you have not confirmed exists** in the repo's `tokens/` or generated `tokens.css`. Missing → add it via `/add-design-token` first. (Example token names in these docs are illustrative.)
+- 🟦 **Design values** — if the repo opted into tokens (recommended), use them; otherwise the styling engine's idiomatic configuration is fine. The kit no longer bans literal `hex`/`px`/`rem` outright — that's the engine layer's job.
+- 🟦 **Token references** — if the repo uses a token system, don't reference a token name you haven't verified exists; add missing tokens via `/add-design-token`. Example token names in these docs are illustrative.
 - ❌ **Hardcoded user-facing strings** → i18next.
-- ❌ **Components referencing primitive tokens directly** → use semantic/component tokens.
+- 🟦 **Primitive vs semantic token usage** — if the repo runs a 3-tier token system, prefer semantic; if it doesn't, this doesn't apply.
 - ❌ **Violating the FSD import rule** (`feature-sliced-design.md`): an **upward import** (a lower layer importing a higher one), a **same-layer slice import** (except an `@x` cross-import on `entities`), or a **deep import past a slice's `index.ts`** (public-API sidestep). And **barrels that `export *`**.
 - ❌ **Misplaced FSD code:** business terminology in `shared`; a mutation or action button in an `entity`; a full-screen `feature`; layout styling or business logic in `app`/route files; segments named by essence (`components/hooks/utils/modals`); the deprecated `processes/` layer; a speculative "insignificant" slice used 0–1 times.
 - ❌ **Server/client runtime leaks** (`services-and-data.md`, hook-blocked): an entity `*.queries.ts` missing `import 'server-only';`; a feature `*.action.ts` missing `'use server';`; `'use client'` at the top of `app/**/page.tsx` or `src/pages/<route>/ui/*.tsx`; an `@x` segment or `@x/` import on `features/widgets/pages` (entities-only).
@@ -87,7 +87,8 @@ The "why" and the compliant patterns for each ban are in the rule files below.
 | Planning a feature/app before building (Phase 1)     | `rules/architecture.md` (`/architect`) |
 | Building/editing a component; its file contract      | `rules/component-structure.md`      |
 | Composing a multi-part component (Tabs/Dialog/Menu); polymorphism (`asChild`); headless behavior library | `rules/component-composition.md` |
-| Styling anything; adding a color/space/etc.          | `rules/styling-and-tokens.md`       |
+| Picking / swapping the styling engine                | `rules/styling-engine.md`           |
+| Styling anything; adding a color/space/etc.          | `rules/styling-and-tokens.md` (recommended pattern, any engine) |
 | Anything users see/operate (a11y, WCAG 2.2 AA)       | `rules/accessibility.md`            |
 | Layout across mobile/tablet/desktop                  | `rules/responsive-design.md`        |
 | Page speed, images, fonts, bundle, Core Web Vitals   | `rules/performance.md`              |
@@ -117,9 +118,11 @@ Full index with one-line summaries: **`rules/README.md`**.
 ## Stack (always latest — never pin)
 
 Next.js (App Router) · React · TypeScript strict · **Feature-Sliced Design** (root `app/` routing +
-FSD layers under `src/`) · CSS Modules + 3-tier DTCG design tokens · TanStack React Query · React
-Hook Form + Zod · i18next · Testing Library + MSW. Architecture enforced by **Steiger** +
-dependency-cruiser. Details and rationale per area: the rule files above.
+FSD layers under `src/`) · **styling engine of the project's choice** (CSS Modules, Tailwind,
+Chakra v3, vanilla-extract, Panda CSS — recorded in `project-specifics.md`; tokens recommended,
+see `styling-and-tokens.md`) · TanStack React Query · React Hook Form + Zod · i18next ·
+Testing Library + MSW. Architecture enforced by **Steiger** + dependency-cruiser. Details and
+rationale per area: the rule files above.
 
 > **"Latest" means verify, not recall.** Your training has a cutoff; library APIs change after
 > it (e.g. Zod, Next.js, RHF). Before using a library's API, check the **installed version**

@@ -1,8 +1,13 @@
-# Rule: Styling & Design Tokens
+# Rule: Design Tokens (recommended pattern for any engine)
 
-> **Non-negotiable.** No CSS framework, no Chakra, no utility-class libraries, no runtime
-> CSS-in-JS. Styling is **CSS Modules** consuming **design tokens** exposed as CSS custom
-> properties, authored as a **DTCG-aligned, three-tier** source of truth.
+> **Recommended, not mandated.** The kit no longer mandates a styling engine — see
+> `styling-engine.md` for the project's engine choice. This file documents a **recommended
+> design-token pattern** (DTCG-aligned, three-tier, generated to a single source the engine
+> consumes) that holds up under theming, dark mode, multi-brand, and contrast/a11y demands
+> *regardless of which engine the repo picked*. The examples below use CSS custom
+> properties — that's the most portable target — but the same three tiers map cleanly to
+> Tailwind `theme.extend`, Chakra `defineTokens`/`defineSemanticTokens`, vanilla-extract
+> `createTheme`, Panda CSS `defineConfig`, etc.
 
 > ⚠️ **Token names in this file are illustrative — they are NOT guaranteed to exist in your
 > repo.** `--color-border-strong`, `--space-stack-xs`, `--text-label-md`, etc. demonstrate the
@@ -223,15 +228,23 @@ Authoring rules for these files:
 
 ## Hard rules
 
-- ❌ **No literal design values** (`#hex`, `rgb()`, named colors, raw `px`/`rem`, shadows) in
-  component CSS or TSX. Always `var(--…)`.
-- ❌ **Components referencing primitive tokens directly.** Use semantic (or component) tokens.
-  Primitives exist to feed semantics.
-- ❌ **Referencing a token you haven't confirmed exists** in the repo's `tokens/` or generated
-  `tokens.css`. Don't copy a `var(--…)` name from these examples — verify, or add it first.
-- ❌ **Hand-editing generated CSS.** Change the token source and regenerate.
-- ❌ **No CSS framework, Chakra `sx`, styled-components, or emotion runtime.**
-- ❌ **Missing required semantic group.** A repo without interactive-color state siblings
+> The rules below apply **when the repo has opted into tokens** (the recommended path). If the
+> project chose an engine and configuration that doesn't use a shared token source, the
+> a11y/responsive/performance/theming rules in their own files still apply — but the
+> token-specific bans below are advisory.
+
+- ❌ (if using tokens) **No literal design values** (`#hex`, `rgb()`, named colors, raw
+  `px`/`rem`, shadows) in component code where a token applies. Use the token (`var(--…)`,
+  Tailwind class, Chakra token reference — whatever the engine uses).
+- ❌ (if using tokens) **Components referencing primitive tokens directly.** Use semantic (or
+  component) tokens. Primitives exist to feed semantics.
+- ❌ (if using tokens) **Referencing a token you haven't confirmed exists** in the repo's
+  token source / generated output. Don't copy a name from these examples — verify, or add it
+  first.
+- ❌ (if using tokens) **Hand-editing generated CSS / generated theme output.** Change the
+  token source and regenerate.
+- ❌ **Missing required semantic group.** (Token-using projects only.) A repo without
+  interactive-color state siblings
   (`-hover`/`-pressed`/`-disabled`), without a motion duration+easing pair, without an
   elevation scale, or without a named `z-{base,dropdown,sticky,overlay,modal,popover,toast,
   tooltip}` set is not ship-ready. Will become a `/verify-build` failure once the

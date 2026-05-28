@@ -12,14 +12,17 @@ Permanent `Hold` entries mirror the `CLAUDE.md` hard bans — keep them consiste
 | TypeScript (strict) | Adopt | 2026-Q1 | `any` banned. |
 | TanStack React Query | Adopt | 2026-Q1 | Server state. |
 | React Hook Form + Zod | Adopt | 2026-Q1 | Forms + boundary validation. |
-| Chakra UI | Hold | 2026-Q1 | Banned — CSS Modules + tokens (styling-and-tokens.md). |
 | Effector / Redux (server state) | Hold | 2026-Q1 | Banned — React Query (services-and-data.md). |
-| Tailwind / CSS frameworks | Hold | 2026-Q1 | Banned (styling-and-tokens.md). |
+| Tailwind CSS | Assess | 2026-Q1 | Now allowed per the engine-agnostic pivot (styling-engine.md). Trial in a new repo before adopting org-wide. |
+| Chakra UI v3 | Assess | 2026-Q1 | Now allowed per the engine-agnostic pivot (styling-engine.md). |
+| vanilla-extract / Panda CSS | Assess | 2026-Q1 | Build-time CSS-in-JS — pairs well with the kit's tokens-recommended path. |
+| Emotion / styled-components (runtime CSS-in-JS) | Trial | 2026-Q1 | Allowed but watch the perf budget (performance.md) — runtime engines hit RSC hydration. |
 
 ## Tools
 | Tech | Ring | Since | Note / ADR |
 | --- | --- | --- | --- |
-| CSS Modules + 3-tier DTCG tokens | Adopt | 2026-Q1 | Styling source of truth. |
+| 3-tier DTCG design tokens (engine-mapped) | Adopt | 2026-Q1 | Recommended for any engine; maps to Tailwind theme / Chakra tokens / CSS vars / vanilla-extract themes (styling-and-tokens.md, styling-engine.md). |
+| CSS Modules | Adopt | 2026-Q1 | One of the supported engine choices (styling-engine.md). |
 | Playwright (E2E) | Adopt | 2026-Q1 | Mandatory E2E layer (testing.md). |
 | Jest / Vitest (unit) | Adopt | 2026-Q1 | Detect per repo. |
 | dependency-cruiser | Adopt | 2026-Q1 | Boundary/cycle fitness function. |

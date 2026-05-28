@@ -98,9 +98,11 @@ changes a shared contract (`contracts-and-versioning.md` — expand→migrate→
   says "just build it," still produce a one-screen plan first, then proceed unit by unit via the
   builder so each piece is reviewed against the constitution.
 - **Reuse beats create**, at every layer — entities, features, widgets, components, tokens.
-- If the request implies a hard-ban violation (Chakra, Effector, a same-layer slice import, an
-  upward import, a deep public-API sidestep, a mutation in an entity), name it and plan the
-  compliant alternative (compose from above / push down / `@x`); don't plan the violation.
+- If the request implies a hard-ban violation (Effector/Redux for server state, a same-layer
+  slice import, an upward import, a deep public-API sidestep, a mutation in an entity), name
+  it and plan the compliant alternative (compose from above / push down / `@x`); don't plan
+  the violation. (Styling engine is a per-project choice now — not a ban — see
+  `styling-engine.md`.)
 - Multi-app / monorepo-sharing decisions belong to `monorepo-architect` — defer to it and reference its output.
 
 ## Finish

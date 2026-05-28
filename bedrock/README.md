@@ -14,10 +14,11 @@ policy-as-code). **Installable as a Claude Code plugin** (`/plugin install bedro
 
 Distilled from the file-per-concern structure proven in the `digital-health` monorepo, then
 **modernized and researched against current (2025–2026) best practice**: always-latest versions,
-**no Chakra / no CSS framework** (CSS Modules + 3-tier DTCG design tokens), **no Effector**,
-**Feature-Sliced Design** with Steiger-enforced boundaries (atomic design kept as an optional
-`shared/ui` sub-convention), and a **monorepo decision guide** (modular monolith → Multi-Zones →
-Module Federation).
+**engine-agnostic on styling** (CSS Modules, Tailwind, Chakra v3, vanilla-extract, Panda CSS —
+pick one per repo; 3-tier DTCG design tokens recommended for theming durability), **no Effector**
+(architectural rule — server state goes through React Query), **Feature-Sliced Design** with
+Steiger-enforced boundaries (atomic design kept as an optional `shared/ui` sub-convention), and
+a **monorepo decision guide** (modular monolith → Multi-Zones → Module Federation).
 
 ## Design principle: thin index, modular depth
 
@@ -34,7 +35,8 @@ bedrock/                      # the plugin root
 │   ├── feature-sliced-design.md   # THE ARCHITECTURE: FSD layers/slices/segments, import rule, @x, public API, Next.js layout
 │   ├── architecture.md            # Phase 1: decompose request → FSD layers → data → build order
 │   ├── component-structure.md     # file-per-concern contract within FSD ui/ segment; shared/ui atomic sub-convention; no cycles
-│   ├── styling-and-tokens.md      # CSS Modules + 3-tier DTCG tokens → CSS vars
+│   ├── styling-engine.md          # engine-agnostic — project picks one
+│   ├── styling-and-tokens.md      # recommended pattern (any engine): 3-tier DTCG tokens
 │   ├── accessibility.md           # WCAG 2.2 AA: semantics, keyboard, focus, contrast, targets, motion
 │   ├── responsive-design.md       # mobile-first, breakpoint tokens, container queries, touch targets
 │   ├── performance.md             # Core Web Vitals, next/image+next/font, RSC-first, bundle budgets
@@ -83,15 +85,15 @@ bedrock/                      # the plugin root
 ## The stack (always latest — never pin)
 
 Next.js (App Router) · React · TypeScript strict · **Feature-Sliced Design** (root `app/` routing +
-FSD layers under `src/`, enforced by Steiger) · **CSS Modules + 3-tier DTCG design tokens** (no
-Chakra, no CSS framework, no runtime CSS-in-JS) · TanStack React Query · React Hook Form + Zod ·
-i18next · Testing Library + MSW · local state via React primitives. Every UI is **WCAG 2.2 AA
-accessible, mobile-first responsive, and Core-Web-Vitals-budgeted**.
+FSD layers under `src/`, enforced by Steiger) · **styling engine of the project's choice**
+(CSS Modules, Tailwind, Chakra v3, vanilla-extract, Panda CSS — recorded in
+`project-specifics.md`; 3-tier DTCG design tokens recommended) · TanStack React Query · React
+Hook Form + Zod · i18next · Testing Library + MSW · local state via React primitives. Every UI
+is **WCAG 2.2 AA accessible, mobile-first responsive, and Core-Web-Vitals-budgeted**.
 
-**Hard bans:** Effector, Chakra/any styling-owning lib, CSS frameworks, runtime CSS-in-JS,
-`any`, pinned versions, hardcoded design values, components using primitive tokens directly,
-unconfirmed token `var(--…)` names, hardcoded user-facing strings, **FSD violations** (upward
-imports, same-layer slice imports except `@x` on entities, deep imports past a slice's public API,
+**Hard bans:** Effector / Redux for server state, `any`, pinned versions, hardcoded user-facing
+strings, **FSD violations** (upward imports, same-layer slice imports except `@x` on entities,
+deep imports past a slice's public API,
 business logic in `shared`, mutations in an entity), circular dependencies (incl. barrel loops),
 testing implementation details.
 

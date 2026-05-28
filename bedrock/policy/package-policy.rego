@@ -13,10 +13,10 @@ import rego.v1
 deps := object.union(object.get(input, "dependencies", {}), object.get(input, "devDependencies", {}))
 
 # --- Banned by the constitution (hard bans from CLAUDE.md) ------------------
+# Styling-engine bans (Chakra / styled-components / emotion) were REMOVED in the engine-agnostic
+# pivot — styling engine is now a per-project choice (rules/styling-engine.md). Only
+# architectural bans remain: server-state stores that fight the React Query / RSC contract.
 banned := {
-  "@chakra-ui/react": "styling-owning lib — use CSS Modules + tokens (styling-and-tokens.md)",
-  "styled-components": "runtime CSS-in-JS — banned (styling-and-tokens.md)",
-  "@emotion/styled": "runtime CSS-in-JS — banned (styling-and-tokens.md)",
   "effector": "external server-state store — use React Query (services-and-data.md)",
   "redux": "server-state store — use React Query (services-and-data.md)",
 }

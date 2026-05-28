@@ -5,13 +5,15 @@
 #
 # Leave the lists empty in the template; projects add entries as real exceptions arise.
 
-# Temporarily allow a constitution-banned dependency (e.g. during a migration off Chakra).
+# Temporarily allow a constitution-banned dependency. The kit's ban list now contains only
+# server-state stores (Effector, Redux) — see policy/package-policy.rego. Styling engines
+# (Chakra, styled-components, emotion, Tailwind) are NOT banned; pick one per repo.
 banned_dep_waivers: []
-  # - dep: "@chakra-ui/react"
-  #   reason: "Legacy features/legacy/* not yet migrated; removing in the Q3 design-system pass."
+  # - dep: "effector"
+  #   reason: "Legacy features/legacy/* on Effector; migrating to React Query in Q3."
   #   approver: "peony"
   #   expires: "2026-09-30"          # YYYY-MM-DD — CI fails this gate once past this date
-  #   adr: "docs/adr/0007-chakra-migration-timeline.md"
+  #   adr: "docs/adr/0007-effector-migration-timeline.md"
 
 # Allow an intentionally pinned version (rare — e.g. a known-broken latest).
 pin_waivers: []

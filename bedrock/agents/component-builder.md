@@ -26,10 +26,12 @@ latest) + TypeScript-strict codebase governed by a fixed engineering constitutio
 ## Non-negotiables
 
 - Next.js latest + React latest, function components, TS strict, **no `any`**.
-- **Styling = CSS Modules consuming semantic/component design-token CSS variables.** No Chakra,
-  no CSS framework, no runtime CSS-in-JS. **No literal colors/spacing/radius; no referencing
-  primitive tokens directly.** Only reference token `var(--…)` names you confirmed in Recon; if a
-  value has no token, add it first (`/add-design-token`). Use the repo's shared `cx` — don't re-declare it.
+- **Styling = the engine the project chose** (CSS Modules, Tailwind, Chakra v3, vanilla-extract,
+  Panda CSS, …) per `rules/styling-engine.md`. Recon `project-specifics.md` for the engine + its
+  per-engine conventions. **If the project uses tokens** (recommended): no literal colors/
+  spacing/radius; no referencing primitive tokens directly; only token names confirmed in
+  Recon; add a missing token via `/add-design-token`. Use the repo's shared `cx` (or the
+  engine's equivalent class-merger) — don't re-declare it.
 - Server state = **React Query**; forms = **React Hook Form + Zod**; i18n = **i18next**.
   Verify each library's current API for the installed version (Context7/docs) — don't write from memory.
 - **No Effector.** Local state = `useState`/`useReducer`/Context.

@@ -1,6 +1,6 @@
 # Bedrock — Next.js / React engineering standards for Claude Code
 
-> A **Claude Code plugin** that ships enforced **Next.js** + **React** engineering standards: a **Feature-Sliced Design (FSD)** architecture (layers · slices · segments · the `@x` public-API rule, enforced by **Steiger**) on an **Nx monorepo** (modular monolith → **Multi-Zones** → **Module Federation micro-frontends**), **design tokens** + atomic design inside `shared/ui`, **React Query** data patterns, **accessibility** (a11y), **TypeScript** quality gates, and an **enterprise governance** layer — **ADRs**, a **tech radar**, **CI fitness functions**, **policy-as-code** (OPA/Rego), and **managed settings**.
+> A **Claude Code plugin** that ships enforced **Next.js** + **React** engineering standards: a **Feature-Sliced Design (FSD)** architecture (layers · slices · segments · the `@x` public-API rule, enforced by **Steiger**) on an **Nx monorepo** (modular monolith → **Multi-Zones** → **Module Federation micro-frontends**), an **engine-agnostic styling layer** (CSS Modules / Tailwind / Chakra v3 / vanilla-extract / Panda CSS — project picks one) with **design tokens** + atomic design recommended inside `shared/ui`, **React Query** data patterns, **accessibility** (a11y), **TypeScript** quality gates, and an **enterprise governance** layer — **ADRs**, a **tech radar**, **CI fitness functions**, **policy-as-code** (OPA/Rego), and **managed settings**.
 
 Portable, **enforced** engineering standards for [Claude Code](https://claude.com/claude-code),
 distributed as a plugin. One constitution — hard bans, rules, agents, scaffolding skills, and an
@@ -81,7 +81,9 @@ A quick map of what this kit standardizes, so you can tell at a glance whether i
 ### Components, design tokens & styling
 
 - **FSD slice/segment** component placement (with atomic design as an optional `shared/ui`
-  sub-convention), **design tokens** as the single source of styling truth, and an
+  sub-convention). **Styling engine is the project's choice** (CSS Modules, Tailwind,
+  Chakra v3, vanilla-extract, Panda CSS, …) — see `rules/styling-engine.md`. **3-tier DTCG
+  design tokens** are the recommended pattern regardless of engine, with an
   `add-design-token` skill.
 - `scaffold-component` skill + `component-builder` agent for consistent, accessible React
   components.

@@ -1,6 +1,6 @@
 ---
 name: frontend-reviewer
-description: Use this agent to review React/Next.js changes against this kit's engineering constitution before merge. It checks FSD placement (shared/ui vs entity vs feature vs widget vs page) and the FSD import rules (downward only, no same-layer slice imports except `@x` on entities, public API only, no public-API sidestep, no circular deps/barrel loops), the file-per-concern contract, token-only styling (flags literal CSS values, unconfirmed/primitive tokens, Chakra/CSS frameworks/CSS-in-JS), accessibility (WCAG 2.2 AA), responsive/mobile-first, performance/Core Web Vitals, entity-read/feature-write data flow + React Query / RHF+Zod usage, security (XSS/secrets/auth/deps), the testing rules + behavior-not-implementation + unit-and-E2E presence, strict TS (no `any`), i18n, and the hard bans (no Effector). It then RUNS `/verify-build` (incl. Steiger) so the verdict is evidence-backed, not grep-only. Returns findings grouped by severity with a merge verdict.
+description: Use this agent to review React/Next.js changes against this kit's engineering constitution before merge. It checks FSD placement (shared/ui vs entity vs feature vs widget vs page) and the FSD import rules (downward only, no same-layer slice imports except `@x` on entities, public API only, no public-API sidestep, no circular deps/barrel loops), the file-per-concern contract, the styling engine the project chose in project-specifics.md (and, when tokens are used, flags literal CSS values, unconfirmed/primitive tokens, missing state siblings), accessibility (WCAG 2.2 AA), responsive/mobile-first, performance/Core Web Vitals, entity-read/feature-write data flow + React Query / RHF+Zod usage, security (XSS/secrets/auth/deps), the testing rules + behavior-not-implementation + unit-and-E2E presence, strict TS (no `any`), i18n, and the hard bans (no Effector/Redux). It then RUNS `/verify-build` (incl. Steiger) so the verdict is evidence-backed, not grep-only. Returns findings grouped by severity with a merge verdict.
 model: inherit
 tools: Bash, Read, Grep, Glob, WebFetch
 ---
@@ -42,14 +42,18 @@ judge ownership and boundary crossings.
 `.props.ts` (not inlined in tests); no inline styles; **`cx` imported from `shared/lib`, not
 re-declared per folder**.
 
-**Styling & tokens (grep for these)**
-- ❌ Literal color (`#`, `rgb(`, `hsl(`), raw `px`/`rem` spacing, radius, shadow in component CSS/TSX.
-- ❌ Component referencing a **primitive** token (e.g. `--color-blue-500`) instead of a
-  semantic/component token (`--color-feedback-danger`).
-- ❌ Chakra (`@chakra-ui`, `sx=`), Tailwind classes, styled-components/emotion runtime, any CSS framework.
-- ❌ `var(--…)` referencing a token **not defined** in the repo's `tokens/` / generated `tokens.css`
-  (a broken style that resolves to nothing). Spot-check that referenced vars actually exist.
-- ✅ CSS Modules consuming semantic token vars; tokens from `tokens/`; themes as semantic overrides.
+**Styling & tokens (grep for these — check against the engine recorded in `project-specifics.md`)**
+- 🟦 **Styling engine is the project's choice** (`styling-engine.md`). Mixing two engines in
+  steady state without a logged migration waiver is a violation.
+- If the project uses tokens (recommended):
+  - ❌ Literal color (`#`, `rgb(`, `hsl(`), raw `px`/`rem` spacing, radius, shadow where a
+    token applies.
+  - ❌ Component referencing a **primitive** token (e.g. `--color-blue-500`) instead of a
+    semantic/component token (`--color-feedback-danger`).
+  - ❌ Token reference (`var(--…)` / Tailwind class / Chakra token) **not defined** in the
+    repo's token source. Spot-check that referenced tokens actually exist.
+  - ✅ Components use semantic tokens; themes override the semantic tier; state siblings
+    (`-hover`/`-pressed`/`-disabled`) used on interactive surfaces, not hand-picked colors.
 
 **Accessibility (WCAG 2.2 AA — `accessibility.md`)**
 - ❌ `<div onClick>` for actions; `outline:none` without a visible focus replacement; meaning by
@@ -136,7 +140,7 @@ failing verify-build is a Blocker** regardless of how clean the code reads. If y
 ## Output
 
 Group by severity:
-- **Blocker** — hard-ban violations (Effector, Chakra/CSS framework/CSS-in-JS, `any`, literal
+- **Blocker** — hard-ban violations (Effector / Redux for server state, `any`, literal
   design values, primitive-token-in-component, **unconfirmed/undefined token `var(--…)`**,
   **FSD violation — upward import, same-layer slice import (non-`@x`), public-API sidestep/deep
   import, mutation in an entity, business logic in `shared`**, **new circular dependency / barrel

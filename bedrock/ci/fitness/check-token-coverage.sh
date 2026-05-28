@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
-# Token-coverage fitness function — fail if a component CSS Module contains a LITERAL design value
-# instead of a token var(--…). Enforces styling-and-tokens.md ("no hex/rgb/raw px") as a CI gate,
-# catching what the PreToolUse hook (single-edit) can't see across the whole tree.
+# Token-coverage fitness function — fail if a component CSS file contains a LITERAL design value
+# instead of a token reference. Enforces the token-recommendation in styling-and-tokens.md as a CI
+# gate, catching what the PreToolUse hook (single-edit) can't see across the whole tree.
+#
+# Engine scope: scans .module.css and .css files. **This script is for projects using CSS-based
+# engines (CSS Modules, vanilla-extract output, etc.).** For Tailwind-based projects, use the
+# Tailwind config-driven check (tokens are in tailwind.config.{ts,js}; literal classes that
+# should be tokens require a different scanner — TODO add a tailwind variant). For Chakra v3,
+# tokens are in the chakra theme — literal use is a code-review concern, not a CI grep target.
+# For projects that opted OUT of tokens entirely, do not run this script.
+#
 # Usage:  ci/fitness/check-token-coverage.sh [src-dir]   (default: src)
 set -euo pipefail
 ROOT="${1:-src}"
