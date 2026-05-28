@@ -55,7 +55,7 @@ guesses, or silently deviating from the constitution is itself a violation. Clos
 ## Hard bans (a reviewer fails the change on any of these)
 
 - ❌ **Effector** or any external/global server-state store. (Server state = React Query; local = React primitives.)
-- ❌ **Chakra UI / any component lib that owns styling**, any **CSS framework** (Tailwind/Bootstrap), and **runtime CSS-in-JS**. → CSS Modules + tokens only.
+- ❌ **Chakra UI / any component lib that owns styling**, any **CSS framework** (Tailwind/Bootstrap), and **runtime CSS-in-JS**. → CSS Modules + tokens only. **Carve-out (`component-composition.md`):** **behavior-only** headless libraries that ship no styles (Base UI, Radix Primitives, React Aria Components, Ariakit) are REQUIRED for multi-part interactive components — pick one per repo and log it in `tech-radar.md` + `project-specifics.md`.
 - ❌ **`any`**, and **`as` casts** without a runtime guard.
 - ❌ **Pinned versions** in code/docs, or installing non-latest without a written reason.
 - ❌ **Hardcoded design values** (hex/rgb, raw px/rem) in components → use a token.
@@ -86,6 +86,7 @@ The "why" and the compliant patterns for each ban are in the rule files below.
 | **Placing a Next.js App Router file** (`error.tsx`, `loading.tsx`, `not-found.tsx`, `route.ts`, `middleware.ts`, `generateMetadata`, parallel/intercepting routes, `sitemap`/`robots`) | **`rules/nextjs-app-router-fsd.md`** |
 | Planning a feature/app before building (Phase 1)     | `rules/architecture.md` (`/architect`) |
 | Building/editing a component; its file contract      | `rules/component-structure.md`      |
+| Composing a multi-part component (Tabs/Dialog/Menu); polymorphism (`asChild`); headless behavior library | `rules/component-composition.md` |
 | Styling anything; adding a color/space/etc.          | `rules/styling-and-tokens.md`       |
 | Anything users see/operate (a11y, WCAG 2.2 AA)       | `rules/accessibility.md`            |
 | Layout across mobile/tablet/desktop                  | `rules/responsive-design.md`        |

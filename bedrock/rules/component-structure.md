@@ -3,8 +3,11 @@
 > **Non-negotiable.** Read before creating or editing any component. **Placement is governed by
 > `feature-sliced-design.md`** (which layer → which slice → which segment); *this* file is the
 > file-per-concern contract for the component *inside* its `ui/` segment, the `shared/ui` atomic
-> sub-convention, the no-cycles rule, and the Storybook title convention. The `/scaffold-component`
-> skill generates this file set. If the two ever seem to disagree on *where* something goes, FSD wins.
+> sub-convention, the no-cycles rule, and the Storybook title convention. **Multi-part composition
+> patterns** (Tabs/Dialog/Menu namespaces), **polymorphism via `asChild`**, and the **approved
+> headless behavior library** live in `component-composition.md`. The `/scaffold-component` skill
+> generates this file set. If two of these rules ever seem to disagree on *where* something goes,
+> FSD wins.
 
 ## Where a component goes (decide first — full rule in `feature-sliced-design.md`)
 
