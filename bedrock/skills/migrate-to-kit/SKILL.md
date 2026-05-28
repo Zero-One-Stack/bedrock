@@ -36,8 +36,8 @@ Typical sequence — adapt to the repo:
 3. **Swap the styling engine, component by component:** Chakra/styled → CSS Modules + tokens,
    one component per change, following `component-structure.md`. Don't convert the whole app at once.
 4. **Move server state to React Query:** replace Effector/Redux data + in-component `fetch` with
-   entity `api/` reads (RSC query fns + hooks) and feature `api/` writes (Server Actions)
-   (`/scaffold-service`), one domain at a time.
+   entity `api/` reads (server-only `<model>.queries.ts` for RSC + client `<model>.hooks.ts` for
+   React Query) and feature `api/` writes (Server Actions) (`/scaffold-service`), one domain at a time.
 5. **Restructure into FSD layers & boundaries:** move code into `pages`/`widgets`/`features`/
    `entities`/`shared` slices with purpose-named segments (`ui/ model/ api/ lib/ config/`), add a
    per-slice public-API `index.ts`, and kill upward imports, same-layer-slice imports, deep imports

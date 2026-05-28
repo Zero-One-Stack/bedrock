@@ -45,9 +45,10 @@ Output these sections. Keep it tight — it's a routing map, not an essay.
   **page/widget that composes them** (no same-layer imports).
 
 ### 2. Data & state plan
-- For each piece of data: a **server read** (→ an **entity** `api/` query, RSC `getX` + React Query
-  hook — name the entity and queries) vs. a **server write** (→ a **feature** `api/` Server Action
-  that invalidates — name the feature and action) vs. **client/UI state** (`useState`/`useReducer`/
+- For each piece of data: a **server read** (→ an **entity** `api/` query — server-only `getX`/`listX`
+  in `<model>.queries.ts` for RSC + client `useX` in the sibling `<model>.hooks.ts` for React Query;
+  name the entity and both files) vs. a **server write** (→ a **feature** `api/` Server Action that
+  invalidates — name the feature and action) vs. **client/UI state** (`useState`/`useReducer`/
   Context) vs. **form state** (RHF + Zod in the feature `model/`). Cite the state-boundary table in
   `services-and-data.md`.
 - List the **entity reads / feature writes to scaffold** (`/scaffold-service`) vs. reuse. Name the

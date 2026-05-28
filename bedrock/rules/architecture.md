@@ -68,7 +68,8 @@ data into client state.
 ### 3. Render & boundaries (Next.js App Router)
 - **Server Components by default.** Decide the **single interactive leaf** that needs `'use client'`
   and place it in a **feature** or **widget** — never `'use client'` at the top of a page or route.
-- Server-side reads call entity query fns directly; client interactivity uses React Query hooks.
+- Server-side reads call entity `<model>.queries.ts` fns directly (server-only); client
+  interactivity uses the sibling `<model>.hooks.ts` React Query hooks (client).
 - Place `loading.tsx` / `error.tsx` beside the **route** in root `app/`; decide Suspense boundaries.
   Identify the **LCP element** and any heavy/below-fold client code to split (see `performance.md`).
 

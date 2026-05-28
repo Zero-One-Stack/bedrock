@@ -64,7 +64,8 @@ entities/employee/
 ├── api/
 │   ├── employee.endpoints.ts   # path constants
 │   ├── employee.api.ts         # transport: fetch fns returning Zod-validated data. No React.
-│   ├── employee.queries.ts     # server query fns for RSC (getEmployee, listEmployees) + React Query hooks
+│   ├── employee.queries.ts     # server-only RSC read fns (getEmployee, listEmployees) — `import 'server-only';`
+│   ├── employee.hooks.ts       # client React Query hooks + query keys (useEmployees, employeeKeys)
 │   ├── employee.mock.ts        # mock responses for tests/stories/MSW
 │   └── employee.msw.ts         # MSW handlers built from endpoints + mocks
 ├── model/
@@ -137,17 +138,36 @@ export async function fetchEmployees(): Promise<Employee[]> {
 }
 ```
 
-### `api/<model>.queries.ts` — RSC query fns + React Query hooks (entity layer)
+### `api/<model>.queries.ts` — **server-only** RSC query fns (entity layer)
 
-The page (Server Component) calls the plain `getX` fn; client components use the hook. Components
-import these via the entity's public API.
+The page (Server Component) calls these directly. They open secrets / hit the DB / hit upstreams,
+so they **must never be bundled into the client**. Declare `import 'server-only';` at the top —
+Next.js will then refuse to compile if a client component pulls them in (the build error names
+the offending import path). Query keys and client-side React Query hooks live in a sibling
+`<model>.hooks.ts` (no `server-only`). Enforced by the PreToolUse hook
+(`block-banned-patterns.sh`) — a `queries.ts` missing `'server-only'` is rejected at write time.
 
 ```ts
-import { useQuery } from '@tanstack/react-query';
+// entities/<model>/api/<model>.queries.ts
+import 'server-only';
 import { fetchEmployees } from './<model>.api';
 
 // Server-side (RSC): call directly in a page/widget Server Component.
 export const listEmployees = () => fetchEmployees();
+```
+
+### `api/<model>.hooks.ts` — client React Query hooks (entity layer)
+
+`'use client'` lives **on this file**, not on `queries.ts`. The directive marks the module
+boundary so a Server Component that imports the entity's barrel (`@/entities/<model>`) doesn't
+try to evaluate `useQuery` server-side — Next.js will treat the hook as a reference to a
+client-only export.
+
+```ts
+// entities/<model>/api/<model>.hooks.ts
+'use client';
+import { useQuery } from '@tanstack/react-query';
+import { fetchEmployees } from './<model>.api';
 
 // Stable, namespaced query keys for the client cache.
 export const employeeKeys = {
@@ -160,7 +180,15 @@ export const useEmployees = () =>
   useQuery({ queryKey: employeeKeys.list(), queryFn: fetchEmployees });
 ```
 
+> **Why split.** `useQuery` is client-only; `'server-only'` is server-only. Keeping them in one
+> file would either force the whole file into the client bundle (defeating `server-only`) or
+> break the client cache hook. The split is the cheapest invariant: one file per runtime.
+
 ### `api/<action>.action.ts` — the feature's Server Action (the only place that mutates)
+
+Server Actions run on the server and `revalidate` after writing. `'use server'` at the top is
+**mandatory** — Next.js treats the missing directive as a regular module and may expose the
+function as a client RPC by accident. Enforced by the PreToolUse hook.
 
 ```ts
 'use server';
@@ -236,7 +264,10 @@ export function FileGrievanceForm() {
 - ❌ A **form schema in `shared`** — it lives in the owning feature's `model/`.
 - ❌ Components calling `fetch` directly, or importing a slice's api by deep path. Go through the slice's public API.
 - ❌ Untyped responses. Validate with Zod at the api boundary.
-- ✅ Reads in entity `api/` (RSC `getX` + React Query hook); writes in feature `api/` (Server Action) that invalidate.
+- ❌ An `entities/<x>/api/*.queries.ts` **without `import 'server-only';`** — silent client-bundle leak. PreToolUse hook blocks it.
+- ❌ A `features/<x>/api/*.action.ts` **without `'use server';`** at the top — Next.js may expose it as a client RPC. Hook-blocked.
+- ❌ Mixing `useQuery` (client) and `import 'server-only'` (server) in the **same** file — split into `<model>.queries.ts` (server) and `<model>.hooks.ts` (client).
+- ✅ Reads split: server-only `getX`/`listX` in `<model>.queries.ts` (RSC) + client `useX` in `<model>.hooks.ts` (React Query); writes in feature `api/` (Server Action) that invalidate.
 - ✅ Stable, namespaced query keys (`xKeys` object); one Zod schema per shape; derive types via `z.infer`.
 - ✅ Reads flow down as props; writes flow up then re-fetch at the top.
 

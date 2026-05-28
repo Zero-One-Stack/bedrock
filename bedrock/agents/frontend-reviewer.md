@@ -74,9 +74,12 @@ re-declared per folder**.
 - ❌ A **mutation outside a feature** (an entity/widget that POSTs/PUT/PATCH/DELETEs); a **domain
   read placed in `shared`** (belongs in the entity's `api/`); a **form schema in `shared`** (belongs
   in the feature's `model/`).
-- Reads via entity `api/` queries (RSC `getX` + React Query hook), passed down as props; writes via a
-  feature `api/` Server Action that invalidates. No `fetch` in components; Zod validation at the api
-  boundary; stable namespaced query keys. Forms use RHF + Zod inside the feature.
+- Reads split: server-only `getX`/`listX` in `entities/<x>/api/<model>.queries.ts` (file starts
+  with `import 'server-only';`) consumed by RSC; client `useX` in `entities/<x>/api/<model>.hooks.ts`
+  (file starts with `'use client';`) consumed by React Query — passed down as props. Writes via a
+  feature `api/` Server Action that starts with `'use server';` and invalidates. No `fetch` in
+  components; Zod validation at the api boundary; stable namespaced query keys. Forms use RHF + Zod
+  inside the feature. (The PreToolUse hook rejects writes missing any of these directives.)
 
 **Security (`security.md`)**
 - ❌ Un-sanitized raw-HTML injection (React's raw-HTML prop fed user/API/URL data); secrets in

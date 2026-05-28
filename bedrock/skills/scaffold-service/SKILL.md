@@ -1,6 +1,6 @@
 ---
 name: scaffold-service
-description: Scaffold a new data layer following this kit's Feature-Sliced Design segments — an ENTITY READ side (entities/<model>/api + model) for queries, and/or a FEATURE WRITE side (features/<action>/api + model) for Server-Action mutations: endpoints, Zod schemas/types, transport api functions, RSC query fns + React Query hooks, the Server Action, mock fixtures, and MSW handlers. Use when the user says "add a service", "wire up an API", "create data hooks for X", or needs to connect a component to remote data. Enforces React Query for server state and bans Effector.
+description: Scaffold a new data layer following this kit's Feature-Sliced Design segments — an ENTITY READ side (entities/<model>/api + model) for queries, and/or a FEATURE WRITE side (features/<action>/api + model) for Server-Action mutations: endpoints, Zod schemas/types, transport api functions, a server-only <model>.queries.ts for RSC reads, a client <model>.hooks.ts for React Query, the Server Action ('use server'), mock fixtures, and MSW handlers. Use when the user says "add a service", "wire up an API", "create data hooks for X", or needs to connect a component to remote data. Enforces React Query for server state and bans Effector.
 ---
 
 # Scaffold Service
@@ -39,15 +39,19 @@ Scaffold the side(s) you need, with **kebab-case files throughout** (no camelCas
 2. `api/<model>.endpoints.ts` — path constants (`const … = { LIST, BY_ID: (id) => … } as const`).
 3. `api/<model>.api.ts` — transport functions only (no React). Each validates the response with
    the Zod schema at the boundary; throws on non-ok responses.
-4. `api/<model>.queries.ts` — the RSC read fns (`getX`/`listX`, called directly in page/widget
-   Server Components) **plus** React Query hooks: stable namespaced query keys (`<entity>Keys`
-   object) and `useX` queries.
-5. `api/<model>.mock.ts` — typed mock responses.
-6. `api/<model>.msw.ts` — MSW handlers built from endpoints + mocks (verify the installed MSW
+4. `api/<model>.queries.ts` — **server-only** RSC read fns (`getX`/`listX`, called directly in
+   page/widget Server Components). First import is `import 'server-only';` — the PreToolUse hook
+   blocks writes without it (prevents client-bundle leaks of secrets/DB calls).
+5. `api/<model>.hooks.ts` — client React Query hooks (`useX`) and stable namespaced query keys
+   (`<entity>Keys` object). Split from `queries.ts` because `useQuery` is client-only and would
+   defeat `server-only` if co-located.
+6. `api/<model>.mock.ts` — typed mock responses.
+7. `api/<model>.msw.ts` — MSW handlers built from endpoints + mocks (verify the installed MSW
    major; 2.x uses `http` / `HttpResponse.json`).
-7. `api/<model>.api.spec.ts` (or `.test.ts` — match the repo) — transport-layer tests
+8. `api/<model>.api.spec.ts` (or `.test.ts` — match the repo) — transport-layer tests
    (success + error + validation), using the repo's test runner (`vi.*` on Vitest).
-8. `index.ts` — the entity's public API: re-export the types, the query fns/hooks, and read-only UI
+9. `index.ts` — the entity's public API: re-export the types, the server-only `getX`/`listX` from
+   `queries.ts`, the client `useX` + key object from `hooks.ts`, and read-only UI
    (public API only — never `export *`).
 
 ### B. Feature WRITE side — `features/<action>/` (the only place that mutates)
@@ -78,7 +82,9 @@ deep `api/`/`model/` path.
 ## Done when
 
 All files exist with kebab-case names in the correct slice (entity `api/`+`model/` for reads,
-feature `api/`+`model/` for writes), types derive from Zod, the query fns/hooks/action are exported
-from the slice's `index.ts` public API, and `/verify-build` passes (compiles, api spec green,
-Steiger + dependency-cruiser clean, lint/format clean) using the repo's actual scripts. Report the
-file list and the query/hook/action names components should import via the slice's public API.
+feature `api/`+`model/` for writes), types derive from Zod, the queries.ts begins with
+`import 'server-only';`, the hooks.ts begins with `'use client';`, the action.ts begins with
+`'use server';`, all three plus the read-only UI are exported from the slice's `index.ts` public
+API, and `/verify-build` passes (compiles, api spec green, Steiger + dependency-cruiser clean,
+lint/format clean) using the repo's actual scripts. Report the file list and the
+queries/hooks/action names components should import via the slice's public API.

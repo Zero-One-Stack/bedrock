@@ -103,10 +103,11 @@ export interface CollectiveAgreement {
 }
 ```
 
-**Rules for `@x`:** only on the **entities** layer (never features/widgets); keep cross-imports
-**rare** (each one is coupling); the `@x/<consumer>.ts` filename is the *consuming* entity's name; it
-re-exports a minimal slice of the API, never `export *`. Before reaching for `@x`, prefer one of the
-resolutions below.
+**Rules for `@x`:** only on the **entities** layer (never features/widgets/pages — the PreToolUse
+hook rejects `@x` segments and `@x/` imports outside `entities/`); keep cross-imports **rare** (each
+one is coupling); the `@x/<consumer>.ts` filename is the *consuming* entity's name; it re-exports a
+minimal slice of the API, never `export *`. Before reaching for `@x`, prefer one of the resolutions
+below.
 
 ### When you hit a same-layer dependency, resolve it (don't reach for `@x` first)
 
@@ -218,12 +219,16 @@ collide. The official resolution — **keep Next's router at the repo root; put 
 ### Render & data flow inside the layers
 
 **Server Components by default.** `'use client'` lives on the **interactive leaf** — and those leaves
-live in **features** and **widgets**, never at the top of a route or page.
+live in **features** and **widgets**, never at the top of a route or page. The PreToolUse hook
+rejects `'use client'` at the top of `app/**/page.tsx` (root route) and `src/pages/<route>/ui/*.tsx`
+(the FSD page slice screen).
 
 - **Data fetching is top-down (RSC).** The page (Server Component) and widgets fetch. Reads are
-  **entity queries** (`entities/<x>/api/*.queries.ts`, e.g. `getEmployee(id)`) exposed via the
-  entity's public API; the page calls them and passes plain data **down as props** into widgets →
-  features → entity UI. Don't invent a global `services/` bucket — domain reads belong to the entity.
+  **entity queries** (`entities/<x>/api/*.queries.ts` — **server-only**, `import 'server-only';` at
+  the top, e.g. `getEmployee(id)`) exposed via the entity's public API; the page calls them and
+  passes plain data **down as props** into widgets → features → entity UI. Client-side reuse goes
+  through the sibling `<model>.hooks.ts` (React Query). Don't invent a global `services/` bucket —
+  domain reads belong to the entity. (Details + the queries/hooks split: `services-and-data.md`.)
 - **State mutations are bottom-up.** A user acts on a **feature** (client leaf). The feature runs a
   **Server Action** (its `api/` segment) or a Route Handler mutation, then **invalidates** the cache
   (`revalidatePath`/`revalidateTag`, or a React Query `invalidateQueries`), which re-runs the
@@ -272,7 +277,11 @@ never reused **stays in that page**, not in `widgets`. Steiger's `fsd/insignific
   understands slices, segments, `@x`, and same-layer isolation.
 - **dependency-cruiser** (`ci/.dependency-cruiser.cjs`) and **eslint-plugin-boundaries**
   (`ci/eslint-fsd-boundaries.cjs`) enforce layer *direction* + the public-API barrier in lint/CI.
-- The **block-banned-patterns** hook blocks deep cross-slice imports at write time.
+- The **block-banned-patterns** hook blocks several FSD/Next.js mistakes at write time:
+  deep cross-slice imports past a slice's `index.ts`; `@x` segments or `@x/` imports on
+  `features/widgets/pages` (entities-only); `'use client'` at the top of `app/**/page.tsx` or
+  `src/pages/<route>/ui/*.tsx`; entity `*.queries.ts` missing `import 'server-only';`; feature
+  `*.action.ts` missing `'use server';`.
 - `/verify-build` runs Steiger + depcruise and treats a violation (or a new cycle) as a failure.
 
 ## Hard rules
@@ -282,7 +291,10 @@ never reused **stays in that page**, not in `widgets`. Steiger's `fsd/insignific
 - ❌ **Deep import** past a slice's `index.ts` (public-API sidestep); `export *` in a barrel; a layer-level barrel.
 - ❌ **`processes/` layer** (deprecated); **segments named by essence** (`components/hooks/utils/modals`).
 - ❌ **Business terminology in `shared`**; **mutations or action buttons in an `entity`**; **a full-screen feature**; **layout styling or business logic in `app`/route files**.
-- ❌ **`'use client'` at the top of a page/route** — push it to a feature/widget leaf.
+- ❌ **`'use client'` at the top of a page/route** (`app/**/page.tsx` or `src/pages/<route>/ui/*.tsx`) — push it to a feature/widget leaf. Hook-blocked.
+- ❌ **Entity `*.queries.ts` without `import 'server-only';`** — silent client-bundle leak of secrets/DB calls. Hook-blocked.
+- ❌ **Feature `*.action.ts` without `'use server';`** — Next.js may expose it as a client RPC. Hook-blocked.
+- ❌ **`@x` on `features/widgets/pages`** — entities-only. Hook-blocked.
 - ❌ **An "insignificant" slice** (referenced 0–1 times) created speculatively — keep it in the page until reuse is real.
 - ✅ Imports flow strictly downward; every slice has a minimal explicit public API; segments named by purpose.
 - ✅ Reads fetched high (pages/widgets via entity queries) and passed down as props; mutations in features that then invalidate.
