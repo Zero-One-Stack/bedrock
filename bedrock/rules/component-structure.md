@@ -53,6 +53,55 @@ in `project-specifics.md`. Business-bearing components never live here — those
 > *presentational primitives*, FSD organizes the *business layers above them*. Storybook titles below
 > still mirror this grouping.
 
+### Heuristics — atom / molecule / organism
+
+Atomic theory is famously slippery; in practice the kit uses these heuristics. They're not
+hard gates — a reviewer makes the call — but they end "is `<SearchBar>` an atom or a
+molecule?" arguments without a vote.
+
+| Level | "It IS this if…" | "It is NOT this if…" |
+| --- | --- | --- |
+| **Atom** | A single semantic HTML element + its variants (`<Button>`, `<Input>`, `<Icon>`, `<Badge>`, `<Spinner>`, `<Avatar>`, `<Label>`, `<Kbd>`). Renders no other named subcomponent of its own. Imports no other atom by name. | It imports another atom (`<Button>` rendering an `<Icon>` is a `molecule`); it owns local state across multiple parts (`<Combobox>` with an open/closed state machine and 3 subcomponents is an `organism`). |
+| **Molecule** | A small composition of **≤3 atoms** with **one purpose** (a `Field` = `Label + Input + ErrorText`; a `SearchBar` = `Icon + Input + IconButton`). May own minimal local state for its single purpose (the field's `id` wiring, the search bar's debounced query). | It composes **more than 3 atoms**, owns layout zones, or coordinates state across multiple subcomponents → `organism`. It needs no atoms, only one HTML element → `atom`. |
+| **Organism** | A larger self-contained block: composes **molecules** (and/or atoms), owns local state across multiple subcomponents, defines named layout regions (header / body / footer slot). Examples: `DataTable`, `NavBar`, `Dialog`, `Tabs`, `Menu`, `Accordion`. **Still presentational** — no domain reads, no Server Actions. | It fetches data, calls a mutation, or carries business terminology (an `EmployeeCard` is an **entity** view, not an organism — `feature-sliced-design.md` § "Choosing the right layer"). |
+
+The 30-second test (apply in this order):
+
+1. **Does it import another atom?** → at least a molecule.
+2. **Does it own state across >3 atoms or define named subcomponent slots?** → organism.
+3. **Does it touch domain data (entity reads, feature actions, business terms)?** → it's
+   not in `shared/ui` at all — promote it to `entities/<x>/ui/`, `features/<x>/ui/`, or
+   `widgets/<x>/ui/`.
+4. **None of the above + single semantic element?** → atom.
+
+Borderline calls (and how the kit resolves them):
+
+- **Button with an Icon child** — the `<Button>` itself stays an **atom** (it's still one
+  semantic element + variants); the consumer composes `<Button><Icon name="x"/></Button>`.
+  Don't conflate "consumer might render N children" with "the component imports atoms."
+- **Field (Label + Input + Error)** — **molecule**, by far the most common one. The pattern
+  is so universal that the kit's M6 (form primitives) lists `Field` as a required atom-set
+  member; "molecule" is the right level.
+- **Dialog / Tabs / Menu** — **organism**. They are multi-part by definition (`Dialog.Root`,
+  `Dialog.Content`, `Dialog.Title`, …); see `component-composition.md`'s namespace rule.
+- **DataTable** — **organism**. Even if it has only one "named" subcomponent (`Column`), it
+  owns sort/filter/pagination state across multiple atoms.
+- **A presentational `<UserAvatar>` showing a user's photo** — if it's truly business-
+  agnostic (takes `src` and `alt` as props), it's an atom (avatar). If it accepts a `User`
+  domain object and knows how to derive the avatar from it, it's an **entity view**
+  (`entities/user/ui/UserAvatar.tsx`), not a shared atom.
+
+Migration notes:
+
+- A component classified as atom that grows past the boundary (suddenly imports two other
+  atoms; suddenly owns state across them) **moves up** — file moves `atoms/x/` → `molecules/x/`.
+  The slice's `index.ts` updates; consumers don't change because they always imported via
+  the slice public API.
+- The reverse move (an organism that's been simplified back to a single semantic element)
+  is also legal; do it during the same refactor that simplified it.
+- Borderline reclassifications are **a `project-specifics.md` decision** the first time;
+  after that the precedent applies. Don't re-litigate per component.
+
 ## Project layout (Next.js App Router + FSD — see `feature-sliced-design.md`)
 
 ```
