@@ -128,6 +128,16 @@ A same-layer dependency is a **code smell**, not a routine pattern. In priority 
 3. **Merge** the two slices if they always change together (they were one slice pretending to be two).
 4. **Only then**, for a genuine entity-to-entity domain relationship, use `@x`.
 
+> **When none of these fit — the event escape hatch.** Compose-from-above (1) is the answer when
+> one parent owns both slices. But for **fan-out** (one action, many independent reactors), **distance**
+> (the two slices sit in different subtrees with no near common owner), or a **cross-cutting observer**
+> (analytics/audit reacting to many features), composition degenerates into prop-drilling or a global
+> store (banned). For *those* cases — and **only** those — the kit's sanctioned channel is a typed
+> **event bus on the `shared` floor**: both slices import *down* into `@/shared/lib/events`, so neither
+> imports the other and import direction holds. Events are past-tense facts, never state or commands.
+> This is a scalpel, not a routine pattern — read `cross-slice-communication.md` for the decision rule
+> before reaching for it.
+
 > **Shared *types* between domains** (your "where does `DepartmentID` go?" problem): if the type
 > carries business meaning it **cannot** go in `shared` (`shared` is business-agnostic). Define it in
 > the most logical **entity** and expose it via that entity's public API — over `@x` if a second

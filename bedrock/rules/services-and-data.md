@@ -41,6 +41,12 @@ suffix shown below (`.endpoints.ts`, `.api.ts`, `.queries.ts`, `.action.ts`, …
 
 Never copy server data into client state. Read it from the query cache (or receive it as RSC props).
 
+> **Coordination ≠ state.** When one feature must *react* to another's action (and no parent owns both),
+> that's not a shared-state problem — don't reach for a global store. Server-data staleness after a
+> mutation is **React Query invalidate / `revalidateTag`** (this file). A *non-data* cross-slice reaction
+> (toast, analytics, a UI flag elsewhere) is the **event bus** (`cross-slice-communication.md`). The bus
+> carries past-tense facts, never state — it does not reopen the Effector / global-store ban.
+
 ## Reads down, writes up (the FSD + App Router data flow)
 
 ```

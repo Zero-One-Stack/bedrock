@@ -19,3 +19,4 @@ dist/
 
 # Per-developer local settings (auto mode allow rules, etc.) — never committed
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
