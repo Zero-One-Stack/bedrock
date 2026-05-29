@@ -56,7 +56,7 @@
 | `enterprise-init` ⛨  | Wires the governance pieces into the project: hooks, CI fitness functions, ADR + radar scaffolding, policy. | Once per project, after `kit-init`. |
 | `adr` ⛨              | Create or supersede an Architecture Decision Record (MADR). | A trigger-level decision is made (`adr.md`). |
 | `adr-index` ⛨        | Rolls all ADRs into a navigable `docs/adr/README.md`. | After creating/superseding an ADR. |
-| `agents-md-export` ⛨ | Mirrors the constitution to a cross-tool `AGENTS.md`. | Project worked on with multiple AI tools. |
+| `agents-md-export`   | Mirrors the constitution to the open [AGENTS.md format](https://agents.md/) at the project root, so Cursor / Copilot / Codex / Aider / Windsurf / Zed enforce the same rules as Claude Code. Runs automatically as part of `kit-init`; re-run when the constitution changes. | Project worked on with multiple AI tools (the default since 2026). |
 | `memory-hygiene` ⛨   | Reconciles `project-specifics.md` against the repo (stale cache, drifted features, expired waivers). | Periodically / after a big refactor. |
 
 ## Agents (multi-step roles)

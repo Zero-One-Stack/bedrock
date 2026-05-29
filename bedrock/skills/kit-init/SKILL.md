@@ -16,9 +16,12 @@ live in the project. This skill copies them in.
    - `${CLAUDE_PLUGIN_ROOT}/CLAUDE.md` → `./CLAUDE.md` (or `./.claude/CLAUDE.md` — match the
      project's convention; default to `./.claude/CLAUDE.md`).
    - `${CLAUDE_PLUGIN_ROOT}/rules/` → `./.claude/rules/` (all universal rule files).
-3. **Preserve project memory:** if `./.claude/rules/project-specifics.md` already exists, **do NOT
+3. **Generate `AGENTS.md` at the project root** so non-Claude AI tools (Cursor, Copilot, Codex,
+   Aider, Windsurf, Zed) read the same constitution. Delegate to the `/bedrock:agents-md-export`
+   skill — it produces a one-page distillation that points at `.claude/rules/` for depth.
+4. **Preserve project memory:** if `./.claude/rules/project-specifics.md` already exists, **do NOT
    overwrite it** — keep the project's living memory. Copy the template version only if it's absent.
-4. Report which files were written vs. preserved.
+5. Report which files were written vs. preserved.
 
 ## Steps
 
@@ -41,12 +44,14 @@ done
 cp "$SRC/CLAUDE.md" "./.claude/CLAUDE.md"
 ```
 
-Then confirm the routing table in the copied `CLAUDE.md` resolves to the copied `rules/*.md`, and
-tell the user the constitution is installed. If this is an **enterprise** project, follow with
-`/bedrock:enterprise-init` to wire the governance/hooks/ADR/CI pieces.
+Then run `/bedrock:agents-md-export` to produce `./AGENTS.md` at the project root for non-Claude
+tool compatibility. Confirm the routing table in the copied `CLAUDE.md` resolves to the copied
+`rules/*.md`, and tell the user the constitution is installed. If this is an **enterprise**
+project, follow with `/bedrock:enterprise-init` to wire the governance/hooks/ADR/CI pieces.
 
 ## Done when
 
-`./.claude/CLAUDE.md` + `./.claude/rules/*.md` exist, `project-specifics.md` is preserved (or seeded
-from template if new), and the agent can read the constitution. Report files written vs. preserved.
-On the project's first real task, the Step 0 Recon gate fills `project-specifics.md`.
+`./.claude/CLAUDE.md` + `./.claude/rules/*.md` + `./AGENTS.md` all exist,
+`project-specifics.md` is preserved (or seeded from template if new), and the agent can read the
+constitution. Report files written vs. preserved. On the project's first real task, the Step 0
+Recon gate fills `project-specifics.md`.

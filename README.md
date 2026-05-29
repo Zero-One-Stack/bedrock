@@ -126,7 +126,7 @@ Run these in any Claude Code session.
 /plugin install bedrock@zos
 
 # 3. In each project, copy the constitution into the repo
-/bedrock:kit-init                  # copies CLAUDE.md + rules/ into ./.claude/
+/bedrock:kit-init                  # copies CLAUDE.md + rules/ into ./.claude/, generates ./AGENTS.md
 
 # 4. For client / enterprise projects, also wire the governance layer
 /bedrock:enterprise-init           # hooks, CI fitness functions, ADR + tech-radar scaffolding, policy
@@ -137,6 +137,11 @@ Run these in any Claude Code session.
 `CLAUDE.md` or `rules/`**; those must physically live in the project. `/bedrock:kit-init` copies
 them in and is idempotent (re-running refreshes the universal rules while preserving the project's
 own `rules/project-specifics.md`).
+
+**Cross-tool out of the box.** `/bedrock:kit-init` also generates a project-root **`AGENTS.md`**
+that mirrors the constitution in the open [AGENTS.md format](https://agents.md/) — so Cursor,
+GitHub Copilot, OpenAI Codex, Aider, Windsurf, and Zed enforce the same rules as Claude Code.
+Re-run `/bedrock:agents-md-export` any time the constitution changes.
 
 > **Prefer a local clone?** `/plugin marketplace add` also accepts a filesystem path — clone the
 > repo and run `/plugin marketplace add ./bedrock` (or the path to your clone).
