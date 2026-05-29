@@ -50,16 +50,21 @@ type and on commit, Steiger/dependency-cruiser/OPA in CI, and the `frontend-revi
 on every diff. The layers are designed to backstop each other — **no single layer is a
 guarantee**, and writing prose as if it were is overclaiming.
 
+The kit ships `eslint-plugin-bedrock` at `tools/eslint-plugin-bedrock/` covering the five
+rules the ecosystem doesn't have a great match for. See its README for setup; everything
+else composes from `eslint-plugin-boundaries`, `eslint-plugin-import`,
+`eslint-plugin-jsx-a11y`, and `no-restricted-imports`.
+
 | Rule | Hook (write-time) | ESLint/Stylelint | Steiger/dep-cruiser/OPA (CI) | Reviewer agent |
 | --- | --- | --- | --- | --- |
-| Deep slice import past `index.ts` | ✓ (Edit/Write/MultiEdit) | ✓ (`eslint-plugin-boundaries` / `eslint-plugin-bedrock`) | ✓ (Steiger `fsd/no-public-api-sidestep`) | ✓ |
-| `@x` on `features/widgets/pages` | ✓ | ✓ | ✓ (Steiger `fsd/forbidden-imports`) | ✓ |
-| `'use client'` at root `app/**/page.tsx` or page slice screen | ✓ (Write only — file shape needed) | ✓ | — | ✓ |
-| Entity `*.queries.ts` missing `import 'server-only';` | ✓ (Write only) | ✓ | — (Next build fails if it ever leaks into a client) | ✓ |
-| Feature `*.action.ts` missing `'use server';` as first statement | ✓ (Write only) | ✓ | — (Next refuses to expose it) | ✓ |
-| Same-layer slice imports | — | ✓ | ✓ (Steiger `fsd/forbidden-imports`) | ✓ |
+| Deep slice import past `index.ts` | ✓ (Edit/Write/MultiEdit) | ✓ `bedrock/no-deep-slice-import` | ✓ (Steiger `fsd/no-public-api-sidestep`) | ✓ |
+| `@x` on `features/widgets/pages` | ✓ | ✓ `bedrock/no-cross-feature-x-import` | ✓ (Steiger `fsd/forbidden-imports`) | ✓ |
+| `'use client'` at root `app/**/page.tsx` or page slice screen | ✓ (Write only — file shape needed) | ✓ `bedrock/no-use-client-at-page-top` | — | ✓ |
+| Entity `*.queries.ts` missing `import 'server-only';` | ✓ (Write only) | ✓ `bedrock/require-server-only-on-queries` (autofixable) | — (Next build fails if it ever leaks into a client) | ✓ |
+| Feature `*.action.ts` missing `'use server';` as first statement | ✓ (Write only) | — (Next refuses to expose it) | — | ✓ |
+| Same-layer slice imports | — | ✓ (`eslint-plugin-boundaries`) | ✓ (Steiger `fsd/forbidden-imports`) | ✓ |
 | Circular dependencies / barrel cycles | — | ✓ (`import/no-cycle`) | ✓ (`madge --circular`, dep-cruiser) | ✓ |
-| Primitive token use in components | — | ✓ (`eslint-plugin-bedrock`) | ✓ (`check-token-coverage.sh` for CSS engines) | ✓ |
+| Primitive token use in components | — | ✓ `bedrock/no-primitive-token-in-component` | ✓ (`check-token-coverage.sh` for CSS engines) | ✓ |
 | Banned dependencies (Effector/Redux for server state) | ✓ (import string match) | ✓ (`no-restricted-imports`) | ✓ (OPA/Conftest on `package.json`) | ✓ |
 | Missing `@deprecated` JSDoc on retired exports | — | ✓ (`eslint-plugin-deprecation`) | — | ✓ |
 | `process.env` outside `shared/config` | — | ✓ (`no-restricted-imports` + custom rule) | ✓ (grep step in fitness) | ✓ |

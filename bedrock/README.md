@@ -167,9 +167,14 @@ Then in Claude Code:
 
 The kit ships the governance layer in-box — apply it with `/bedrock:enterprise-init`:
 
-- **Enforcement, not just docs:** deterministic `hooks/` (block banned imports, audit every edit,
-  inject memory at session start) + CI **fitness functions** (`ci/`: boundaries/cycles, token
-  coverage, Web-Vitals + a11y budget, SBOM, ADR-reference gate) that make the standards build-breaking.
+- **Layered enforcement, not just docs:** deterministic `hooks/` block banned patterns at
+  write time; **`tools/eslint-plugin-bedrock/`** (5 rules covering deep slice imports,
+  cross-feature `@x`, primitive token use in components, missing `server-only` on entity
+  queries, `'use client'` at a page top) backstops existing code; CI **fitness functions**
+  (`ci/`: boundaries/cycles, token coverage, Web-Vitals + a11y budget, SBOM, ADR-reference
+  gate) catch tree-wide violations regardless of source; `frontend-reviewer` reads the diff.
+  See `rules/governance.md` § "The enforcement matrix" for what catches what and the
+  documented hook bypasses.
 - **Locked org tier:** `managed-settings/` deployed to the OS path → projects inherit, can't weaken.
 - **Durable memory:** immutable, append-only **ADRs** (`docs/adr/`, `rules/adr.md`) + a `docs/radar/`
   **Tech Radar** above them. `project-specifics.md` holds mutable state; ADRs hold the "why".
