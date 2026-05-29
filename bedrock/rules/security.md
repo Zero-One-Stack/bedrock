@@ -49,6 +49,83 @@
   note the project's stance in `project-specifics.md`.
 - Validate and escape data going into `<script>`/JSON embedded in the document.
 
+## `shared/config` — environment variables and feature flags
+
+Direct `process.env` reads in slice code are the most common way secrets leak into the
+client bundle. The kit's answer: a typed, Zod-parsed config layer in `shared/config/` that's
+**split by reachability** (server-only secrets vs. browser-safe public values). Slices import
+the typed config; they never touch `process.env` directly.
+
+```ts
+// src/shared/config/env.server.ts — server-only. NEVER imported from a client module.
+import 'server-only';
+import { z } from 'zod';
+
+const ServerEnv = z.object({
+  DATABASE_URL: z.string().url(),
+  STRIPE_SECRET_KEY: z.string().min(1),
+  AUTH_SECRET: z.string().min(32),
+  // …everything that must stay on the server.
+});
+
+export const env = ServerEnv.parse(process.env);
+```
+
+```ts
+// src/shared/config/env.client.ts — safe to import from anywhere.
+import { z } from 'zod';
+
+// NEXT_PUBLIC_* vars are inlined at build time. Validate them so a missing/empty value
+// fails the build instead of crashing at runtime.
+const ClientEnv = z.object({
+  NEXT_PUBLIC_APP_URL: z.string().url(),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+});
+
+export const env = ClientEnv.parse({
+  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+  NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+});
+```
+
+```ts
+// src/shared/config/flags.ts — feature flags, evaluated server-side from env or a flag service.
+import 'server-only';
+import { z } from 'zod';
+
+const Flags = z.object({
+  newCheckout: z.boolean().default(false),
+  betaSearch: z.boolean().default(false),
+});
+
+export const flags = Flags.parse({
+  newCheckout: process.env.FLAG_NEW_CHECKOUT === '1',
+  betaSearch: process.env.FLAG_BETA_SEARCH === '1',
+});
+```
+
+Rules:
+
+- ❌ **`process.env` accessed anywhere outside `shared/config/`.** Slices import the typed
+  config object; the raw env is encapsulated.
+- ❌ **`env.server.ts` without `import 'server-only';`** — guarantees the file refuses to
+  bundle into the client. The PreToolUse hook ALREADY rejects entity `*.queries.ts` without
+  this directive; the same hardening can be extended to `env.server.ts` per repo.
+- ❌ **A secret in `env.client.ts` or behind a `NEXT_PUBLIC_*` name.** `NEXT_PUBLIC_*` is
+  inlined into the JS bundle; anyone can read it. The name itself is a self-documenting
+  promise that the value is safe to expose.
+- ❌ **Schema-less env reads** (`const url = process.env.DATABASE_URL!`). The non-null
+  assertion turns a missing env var into a 3-AM production crash instead of a build failure.
+  Always parse with Zod.
+- ❌ **Feature flags read from `process.env` directly inside a slice** — flag evaluation
+  belongs to `shared/config/flags.ts`; slices import the typed `flags` object.
+- ✅ Two files: `env.server.ts` (server-only, Zod-parsed) and `env.client.ts` (browser-safe,
+  Zod-parsed). Both validated at module load — a missing value fails the build, not the page.
+- ✅ Server-only `flags.ts` parses runtime flag state once; features read the typed object.
+  For per-user flags (LaunchDarkly etc.), `flags.ts` exposes a server function the page
+  calls, not direct SDK access from slices.
+- ✅ Public client-safe values cross the RSC boundary; secrets never do.
+
 ## Checklist — a security-relevant change is "done" when
 
 - [ ] No un-sanitized raw-HTML injection; user/API HTML sanitized or rendered as text.
