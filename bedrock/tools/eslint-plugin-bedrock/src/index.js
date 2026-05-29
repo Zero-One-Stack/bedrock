@@ -16,6 +16,7 @@ import noPrimitiveTokenInComponent from './rules/no-primitive-token-in-component
 import noCrossFeatureXImport from './rules/no-cross-feature-x-import.js';
 import requireServerOnlyOnQueries from './rules/require-server-only-on-queries.js';
 import noUseClientAtPageTop from './rules/no-use-client-at-page-top.js';
+import eventsOnlyFromShared from './rules/events-only-from-shared.js';
 
 import recommended from './configs/recommended.js';
 
@@ -30,6 +31,7 @@ const plugin = {
     'no-cross-feature-x-import': noCrossFeatureXImport,
     'require-server-only-on-queries': requireServerOnlyOnQueries,
     'no-use-client-at-page-top': noUseClientAtPageTop,
+    'events-only-from-shared': eventsOnlyFromShared,
   },
   configs: {
     recommended,

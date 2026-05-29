@@ -20,6 +20,7 @@ const recommended = {
     'bedrock/no-primitive-token-in-component': 'error',
     'bedrock/require-server-only-on-queries': 'error',
     'bedrock/no-use-client-at-page-top': 'error',
+    'bedrock/events-only-from-shared': 'error',
   },
 };
 

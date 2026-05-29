@@ -8,7 +8,7 @@
 
 ## What's in the plugin
 
-Five rules. Each is one bedrock concern that doesn't have a great match in
+Six rules. Each is one bedrock concern that doesn't have a great match in
 `eslint-plugin-boundaries`, `eslint-plugin-import`, or existing ecosystem plugins:
 
 | Rule | Catches |
@@ -18,6 +18,7 @@ Five rules. Each is one bedrock concern that doesn't have a great match in
 | `bedrock/no-primitive-token-in-component` | `var(--color-blue-500)` in component code. Forces semantic-tier tokens (`var(--color-bg-emphasis)`). |
 | `bedrock/require-server-only-on-queries` | Any `entities/<x>/api/<x>.queries.ts` missing the top-of-file `import 'server-only';`. Autofixable. |
 | `bedrock/no-use-client-at-page-top` | `'use client'` at the top of `app/**/page.{ts,tsx,js,jsx}` or `src/pages/<route>/ui/<X>Page.{tsx,jsx}`. |
+| `bedrock/events-only-from-shared` | An event-emitter library (`mitt`/`eventemitter3`/`nanoevents`/…) or a hand-rolled `new EventTarget()` bus **outside** `shared/lib/events/`. The kit has one cross-slice bus; slices use it via `@/shared/lib/events` (`cross-slice-communication.md`). |
 
 The kit's other architectural rules (layer direction, same-layer slice imports, cycles)
 are already well-covered by **Steiger**, **dependency-cruiser**, **eslint-plugin-boundaries**,
@@ -155,6 +156,20 @@ The FSD page-screen pattern intentionally restricts to direct children of `ui/` 
 ends in `Page` — so nested client leaves (`pages/<route>/ui/sections/Header.tsx`) are not
 caught. (`nextjs-app-router-fsd.md`)
 
+### `bedrock/events-only-from-shared`
+
+```js
+'bedrock/events-only-from-shared': ['error', {
+  eventLibraries: ['mitt', 'eventemitter3', 'nanoevents', 'eventemitter2', 'tiny-emitter'],
+  eventsDir: 'shared/lib/events',  // the ONE place an emitter may be built
+  flagRawEventTarget: true,        // also flag `new EventTarget()` outside eventsDir
+}]
+```
+
+Files under `eventsDir` are exempt (that's where the bus is constructed). Set
+`flagRawEventTarget: false` if your repo legitimately uses bare `EventTarget` for DOM-ish
+utilities outside the events folder. (`cross-slice-communication.md`)
+
 ## Companion ESLint rules (use alongside this plugin)
 
 These existing plugins cover the rest of the kit's architectural rules. The bedrock kit's
@@ -213,7 +228,7 @@ npm install eslint @typescript-eslint/parser --no-save
 npm test
 ```
 
-All five rules ship with `node --test`-style tests using ESLint's `RuleTester`. Tests cover
+All six rules ship with `node --test`-style tests using ESLint's `RuleTester`. Tests cover
 valid and invalid cases for `src/`-wrapped + flat repo layouts, `.ts`/`.js`/`.tsx`/`.jsx`,
 TypeScript-only syntax (`import type`), and JSX-bearing files.
 

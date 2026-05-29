@@ -20,6 +20,7 @@ common patterns. The library's own docs remain the source of truth for anything 
 | `zod.md` | Zod | v3 vs v4 API differences (`z.string().datetime()` → `z.iso.datetime()`), `z.infer`, `z.coerce.date()`, parse vs safeParse, error shape. |
 | `storybook-9.md` | Storybook 9 | CSF3 + autodocs setup, `play` functions, `addon-a11y` with `test: 'error'`, the theme/viewport/forced-colors/RTL matrix in `preview.ts`, test-runner CI. |
 | `msw-2.md` | Mock Service Worker 2.x | The 2.x `http` + `HttpResponse` syntax (different from 1.x), per-test handler override, `setupServer` in test-utils. |
+| `event-bus.md` | **Kit-authored** (not 3rd-party) | The full copy-paste implementation of the cross-slice event bus (`shared/lib/events/`): `createBus()` + globalThis-guarded MF-safe singleton, async + error-isolated dispatch, the `useEvent` hook, publish/subscribe patterns, the analytics bridge, the `BroadcastChannel` cross-tab adapter, and the test seam. Cited by `cross-slice-communication.md`. |
 
 ## How to use
 

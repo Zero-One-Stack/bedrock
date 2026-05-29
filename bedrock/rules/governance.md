@@ -59,6 +59,9 @@ else composes from `eslint-plugin-boundaries`, `eslint-plugin-import`,
 | --- | --- | --- | --- | --- |
 | Deep slice import past `index.ts` | ✓ (Edit/Write/MultiEdit) | ✓ `bedrock/no-deep-slice-import` | ✓ (Steiger `fsd/no-public-api-sidestep`) | ✓ |
 | `@x` on `features/widgets/pages` | ✓ | ✓ `bedrock/no-cross-feature-x-import` | ✓ (Steiger `fsd/forbidden-imports`) | ✓ |
+| Event emitter built outside `shared/lib/events` (a slice's own bus) | — | ✓ `bedrock/events-only-from-shared` | ✓ (no event-lib import outside the events dir) | ✓ |
+| Off-contract / wrong-payload bus event | — | ✓ (typecheck — `emit`/`on` generic over `AppEventName`) | — | ✓ |
+| Bus misuse (state/command/request-response on the bus; event where the cache would do) | — | — | — | ✓ (judgment — `cross-slice-communication.md`) |
 | `'use client'` at root `app/**/page.tsx` or page slice screen | ✓ (Write only — file shape needed) | ✓ `bedrock/no-use-client-at-page-top` | — | ✓ |
 | Entity `*.queries.ts` missing `import 'server-only';` | ✓ (Write only) | ✓ `bedrock/require-server-only-on-queries` (autofixable) | — (Next build fails if it ever leaks into a client) | ✓ |
 | Feature `*.action.ts` missing `'use server';` as first statement | ✓ (Write only) | — (Next refuses to expose it) | — | ✓ |

@@ -1,7 +1,7 @@
 {
   "name": "eslint-plugin-bedrock",
   "version": "0.1.0",
-  "description": "ESLint rules for the bedrock kit — mechanical enforcement for the patterns the PreToolUse hook can't catch (existing code, refactors, cross-file). Catches: deep slice imports past index.ts; @x outside entities; primitive-token references in components; class instances passed across the RSC↔Client boundary; entity queries.ts missing import 'server-only'.",
+  "description": "ESLint rules for the bedrock kit — mechanical enforcement for the patterns the PreToolUse hook can't catch (existing code, refactors, cross-file). Catches: deep slice imports past index.ts; @x outside entities; primitive-token references in components; entity queries.ts missing import 'server-only'; 'use client' at a page top; event emitters built outside shared/lib/events.",
   "keywords": ["eslint", "eslintplugin", "eslint-plugin", "feature-sliced-design", "fsd", "nextjs", "react", "bedrock"],
   "type": "module",
   "main": "./src/index.js",
