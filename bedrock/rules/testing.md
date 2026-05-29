@@ -17,6 +17,35 @@
 A feature is "tested" when its components have unit/integration coverage **and** its primary
 journey has an E2E test. Map this in the architect's plan (`architecture.md`) so neither is skipped.
 
+### Which FSD layer owes which test
+
+Reviewers can't answer "what tests does an entity owe vs a feature?" without a rule. The kit's
+mapping — read top to bottom; lower-layer tests are foundational, higher-layer tests build
+on them without re-asserting the same things:
+
+| FSD layer | Owed unit/integration test | E2E? |
+| --- | --- | --- |
+| **`shared/ui`** | Render + variants + a11y (jest-axe). Hook test for `*.behavior.ts`. Visual regression via Storybook (`storybook.md`). | No (covered by features that consume it). |
+| **`shared/lib`** | Pure unit tests for every exported helper (formatter, date util, `cx`, `Slot`, recipe, etc.). Branch coverage matters here. | No. |
+| **`shared/api`** | Transport-layer test: success + error + Zod validation against a mocked endpoint (MSW). | No. |
+| **`shared/config`** | Validate Zod schemas parse a valid input and reject an invalid one. | No. |
+| **`entities/<x>/model`** | The Zod schema's contract (round-trip a known good payload; reject a malformed one). Selectors/derived computations get pure-function tests. | No. |
+| **`entities/<x>/api`** | Query test: MSW returns mock data → query fn returns parsed types. Error path: HTTP 500 → throw. | No. |
+| **`entities/<x>/ui`** | Component render test (read-only entity views) + axe. | No. |
+| **`features/<x>/model`** | Form schema test: valid input parses, invalid input fails with the expected error path. Hook test for `use<X>` (RHF wiring, controlled props). | No. |
+| **`features/<x>/api`** | Server-Action contract test: given a valid payload, calls the backend with the right body and revalidates. Given an invalid payload, throws Zod. | No. |
+| **`features/<x>/ui`** | Integration test: render the form, fill it via Testing Library, submit, assert the action was called with the right input and the success/error UI rendered (action mocked). | One **happy-path E2E** per user-valuable feature (Playwright). |
+| **`widgets/<x>`** | Composition integration test: render the widget with mocked features/entity data, assert the wiring (a feature's `onSubmit` updates the entity view). | Optional — usually covered by the feature's E2E. |
+| **`pages/<route>`** | Smoke render only (the page composes widgets; the widgets are already covered). Don't repeat widget assertions. | E2E for the route's critical journey (`/login`, `/checkout/*`, the user-valuable path). |
+| **`app/providers`** | A render-with-providers helper used by every component test (`@/test-utils`); the providers themselves don't usually own tests beyond the smoke that they mount without crashing. | No. |
+| **`app/model` (sitemap/robots/manifest)** | The sitemap output validates against `MetadataRoute.Sitemap`; robots returns the expected disallow list. | No. |
+
+**The DRY rule:** each layer's test asserts the layer's own contract — not the contracts
+above or below it. The feature integration test doesn't re-assert "the input has
+`aria-invalid` when `errorText` is set" — that's the atom's test. The page test doesn't
+re-assert "the form submits with the right body" — that's the feature's test. The E2E
+doesn't re-assert "validation catches an empty title" — that's the feature's model test.
+
 ## Detect the test runner first (Step 0 Recon)
 
 The examples below are written in **Jest** because one syntax had to be picked. **Determine the
