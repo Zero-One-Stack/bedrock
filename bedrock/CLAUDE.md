@@ -84,6 +84,7 @@ The "why" and the compliant patterns for each ban are in the rule files below.
 | ---------------------------------------------------- | ----------------------------------- |
 | **Placing ANY file — which layer/slice/segment, what may import what** | **`rules/feature-sliced-design.md`** (the architecture) |
 | **Placing a Next.js App Router file** (`error.tsx`, `loading.tsx`, `not-found.tsx`, `route.ts`, `middleware.ts`, `generateMetadata`, parallel/intercepting routes, `sitemap`/`robots`) | **`rules/nextjs-app-router-fsd.md`** |
+| Picking the working cadence (brainstorm → plan → execute → review) | `rules/working-cadence.md` |
 | Planning a feature/app before building (Phase 1)     | `rules/architecture.md` (`/architect`) |
 | Building/editing a component; its file contract      | `rules/component-structure.md`      |
 | Composing a multi-part component (Tabs/Dialog/Menu); polymorphism (`asChild`); headless behavior library | `rules/component-composition.md` |
