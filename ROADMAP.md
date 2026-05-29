@@ -129,6 +129,173 @@ earlier "atomic + ad-hoc feature slices" model with a standardized, mechanically
 - ◻ **Telemetry** — usage signal (the audit hook is a start) to prune what isn't used; the kit
   should shrink as much as grow.
 
+## ✅ Phase 6 — Audit pass (SHIPPED, 2026-05)
+
+External-research-driven gap audit + implementation across HIGH/MEDIUM/LOW tiers (~30 commits,
+all on `main`). Closed long-known gaps and added rules the kit had been gesturing at without
+documenting.
+
+- ✅ **Hook hardening (HIGH H1+H2+M2)** — server-only enforcement on entity reads, `'use server'`
+  on Server Actions, `'use client'` blocked at page-top (root `app/**/page.tsx` + FSD page
+  screens), `@x` blocked outside `entities/`. 28 black-box smoke tests covering edge cases
+  (BOM, long header, partial Edits, flat + monorepo layouts, JSX route variants).
+- ✅ **Next.js App Router primitives in FSD** (HIGH H3 — `nextjs-app-router-fsd.md`) — every
+  routing primitive mapped to its FSD home (re-exportable vs static-analyzed; the
+  `<route>/routing.ts` sub-barrel pattern; sitemap/robots/manifest as the app-layer carve-out;
+  the Satori OG-image carve-out for inline styles).
+- ✅ **Component composition + headless** (HIGH H4+H5 — `component-composition.md`) — namespace
+  exports, `asChild` Slot polymorphism, the canonical Slot helper, one-headless-lib-per-repo
+  policy with migration carve-out.
+- ✅ **Required token tiers** (HIGH H6) — state siblings (`-hover`/`-pressed`/`-disabled`),
+  motion duration+easing pair, elevation, z-index, opacity; `add-design-token` enforces the
+  state-sibling rule with an interactive-vs-narrative boundary table.
+- ✅ **Engine-agnostic styling pivot** — dropped the Tailwind/Chakra/CSS-in-JS bans. Styling
+  engine is now project-level (`styling-engine.md`); the kit guides architecture, not the
+  class-string emitter. Adversarial sweep removed the bans from CLAUDE.md hard-bans, policy
+  rego, waivers, the radar, the agents, and the fitness functions.
+- ✅ **Theming contract** (HIGH H7 — `theming.md`) — `data-theme`+`data-brand` on `<html>`,
+  SSR-flash prevention (cookie + pre-paint script; `next-themes` Pattern B alternative),
+  `forced-colors` Windows High Contrast with the transparent-outline focus-ring technique,
+  RTL via logical properties, multi-brand keying with the brand-namespaced primitive escape
+  hatch. Cross-checked against the actual Next.js 15 / Tailwind 4 / Chakra v3 / next-themes
+  APIs (the first-draft examples had multiple incorrect claims; review caught them).
+- ✅ **MEDIUM tier** (M1–M13) — Steiger rule ledger; variant API recipe; provider composition
+  root with wrong-order failure mode table; atom/molecule/organism heuristics; 15-primitive
+  form baseline; Storybook contract (CSF3+autodocs+play+theme matrix+a11y blocking+visual
+  regression); `audit-design-system` skill; `shared/lib` grouping by purpose; `shared/config`
+  Zod env split (server vs client + feature flags); feature-to-feature headless hook pattern;
+  testing-per-FSD-layer table; RSC↔Client serialization rule (Zod-parsed POJOs only).
+- ✅ **LOW tier** (L1–L13) — CSS `@layer` ordering; icon system; motion + `prefers-reduced-
+  motion`; `*.behavior.ts` + `*.variants.ts` in the file set; per-slice OWNERS + README;
+  slice extract/retire/graveyard playbook; i18n namespace per slice; telemetry per FSD layer;
+  `export type` + `@deprecated` JSDoc; reserved slice names; density modifiers via
+  `[data-density]` + `@container style()`; design-system MAJOR triggers in
+  `contracts-and-versioning.md`; wizards-as-widgets (replaces the deprecated `processes/`).
+
+## ✅ Phase 7 — Positioning (SHIPPED, 2026-05)
+
+External landscape research surfaced five gaps. All addressed.
+
+- ✅ **Adversarial framing** (#41) — `governance.md` now ships the **enforcement matrix**:
+  every rule mapped to which layer catches it (hook / ESLint / Steiger+dep-cruiser+OPA /
+  reviewer agent). Paired "honest limits" subsection naming six hook bypasses (pipe mode,
+  MCP subagents, shell-issued writes, model rerouting, partial Edits, missing `jq`). Bare
+  "Hook-blocked" tags across CLAUDE.md, feature-sliced-design.md, services-and-data.md,
+  nextjs-app-router-fsd.md replaced with "layered enforcement — see the matrix" pointers.
+- ✅ **AGENTS.md compat as baseline** (#37) — `agents-md-export` skill rewritten (the old
+  version still banned Chakra), promoted from enterprise-only to baseline, runs
+  automatically as part of `kit-init`. Generates `./AGENTS.md` at the project root so
+  Cursor / GitHub Copilot / OpenAI Codex / Aider / Windsurf / Zed / Gemini CLI enforce the
+  same constitution as Claude Code. Biggest single distribution unlock.
+- ✅ **Bundled docs pattern** (#38) — Vercel's data: bundled `node_modules/next/dist/docs/`
+  produced 100% eval pass vs 79% with on-demand retrieval. Shipped six curated reference
+  snippets at `docs/external-references/` (Next.js 15 hot spots, React Query v5, RHF
+  Controller, Zod v3/v4 differences, Storybook 9 setup, MSW 2.x). `kit-init` copies them
+  into `.claude/docs/`; CLAUDE.md tells the agent to read locally before WebFetching.
+- ✅ **eslint-plugin-bedrock** (#39) — `tools/eslint-plugin-bedrock/` with 5 rules nobody
+  else has good matches for: `no-deep-slice-import`, `no-cross-feature-x-import`,
+  `no-primitive-token-in-component`, `require-server-only-on-queries` (autofixable),
+  `no-use-client-at-page-top`. All 5 ship with `node --test` test suites — green. Hybrid
+  scope per design: small focused plugin + `eslint.config.js` recipes for everything else
+  (eslint-plugin-boundaries / import / jsx-a11y / no-restricted-imports). Not yet on npm.
+- ✅ **Working cadence** (#40) — `working-cadence.md`: four-phase rhythm
+  (brainstorm → plan → execute → review) wired to the agents the kit already ships
+  (`/architect`, scaffolders + `component-builder`, `/verify-build` + `frontend-reviewer`).
+  Comparison table with superpowers / compound-engineering; when-to-skip table for trivial
+  changes.
+
+## ▶ Phase 8 — Distribution & adoption (the next frontier)
+
+The kit is now feature-complete vs. the audit; the next gap is **adoption**. Code quality
+doesn't drive installs — distribution does. The strategy: position bedrock as **the
+architecture/governance layer that wraps shadcn + vercel-labs/agent-skills**, not as their
+competitor. (shadcn ships components; vercel-labs ships React perf + UX rules; bedrock
+ships the FSD + tokens + theming + testing + governance architecture on top.)
+
+### 8.1 — Public listings (~1 hour each, free, mandatory)
+
+- ◻ **claudemarketplaces.com** — submit `Zero-One-Stack/bedrock` with the marketplace
+  manifest. The largest Claude Code plugin directory at 2026 — adoption signal anchor.
+- ◻ **aitmpl.com** — list as an "engineering constitution" template. Different audience
+  from claudemarketplaces (template-discovery rather than plugin-install).
+- ◻ **claudepluginhub.com** — submit. Smaller but growing.
+- ◻ **rohitg00/awesome-claude-code-toolkit** — open a PR adding bedrock to the engineering
+  kits section. The mega-curated list with ~1.9k stars; appearing here is a credibility
+  marker.
+- ◻ **agents.md/awesome** — submit bedrock as a comprehensive AGENTS.md example for
+  React/Next.js, now that `kit-init` ships AGENTS.md by default.
+- ◻ **PatrickJS/awesome-cursorrules** — open a PR pointing at bedrock's AGENTS.md export.
+  Cursor users get to bedrock indirectly through this list.
+
+### 8.2 — README hooks (do once; convert visitors to installers)
+
+- ◻ **Compatibility statements at the top of README.md**: "Compatible with shadcn/ui,
+  vercel-labs/agent-skills, Tailwind, Radix, Base UI, React Aria, Ariakit, Chakra v3" —
+  explicitly position as the architecture wrapper, not the styling replacement.
+- ◻ **"vs shadcn / vs vercel-labs/agent-skills" comparison table** — short, honest, one
+  paragraph each. The audit doc covered this; promote it to the README.
+- ◻ **30-second pitch + GIF** at the top — what the kit does + one screenshot
+  (`/audit-design-system` output is the most legible single-frame artifact).
+- ◻ **Migration guide** for projects already on shadcn (which is ~most React/Next.js apps
+  in 2026). The migrate-to-kit skill exists; surface it as a README-level path.
+- ◻ **AGENTS.md badge** at the top showing cross-tool compatibility (Cursor / Copilot /
+  Codex / Aider / Windsurf / Zed / Claude Code).
+
+### 8.3 — npm publish (`eslint-plugin-bedrock`)
+
+- ◻ **Reserve the `eslint-plugin-bedrock` package name** on npm (the current code lives in
+  `bedrock/tools/eslint-plugin-bedrock/`; consumers install via `file:` or git URL today).
+- ◻ **Publish v0.1.0** once the package name is reserved and a short README pass adds the
+  "Why a plugin AND a hook?" framing from `governance.md`'s enforcement matrix.
+- ◻ **Add the install instructions to the bedrock plugin's `kit-init`** so installing
+  bedrock prompts to add `eslint-plugin-bedrock` to the project's devDeps + write the flat
+  config.
+- ◻ **Open a PR against eslint-plugin-boundaries' README** linking to bedrock as the
+  recommended FSD-shaped composition. (One of the two real distribution surfaces for the
+  ESLint-rule audience.)
+- ◻ **Hand the plugin to two early-adopter projects** for feedback before declaring it 1.0.
+
+### 8.4 — AGENTS.md ecosystem outreach
+
+- ◻ **Reach out to the AGENTS.md core team** (`agents.md` / Agentic AI Foundation under
+  Linux Foundation) with bedrock as a "comprehensive React/Next.js example" for the docs.
+  They are actively curating examples; getting listed there is the AGENTS.md equivalent of
+  a Hacker News front page.
+- ◻ **Open issues on Cursor / Copilot / Codex docs** pointing at bedrock as a reference
+  example for AGENTS.md adoption — low-effort but credibility-building.
+
+### 8.5 — Soft outreach (do when there's signal)
+
+- ◻ **Vercel community / Next.js Discord** — post an "engineering-constitution-for-Next.js"
+  thread once the bundled docs have been verified against the latest Next.js minor.
+- ◻ **Feature-Sliced Design Discord** — post bedrock as the "FSD + Next.js + AI codegen"
+  reference kit. The FSD community is the most-aligned audience.
+- ◻ **A short blog post + Hacker News** — frame the kit's distinguishing claim:
+  *"Engineering constitution as a Claude Code plugin: layered enforcement (hook + ESLint +
+  CI + reviewer), engine-agnostic, FSD-shaped."* Lead with the enforcement matrix —
+  it's the kit's most novel asset and is harder to hand-wave than rules-as-docs.
+- ◻ **Submit to Thoughtworks Tech Radar** for the "Architecture drift reduction with LLMs"
+  technique (currently Assess at Apr 2026) — bedrock fits the "constitution + fitness
+  functions" shape Thoughtworks endorses.
+
+### 8.6 — Measure adoption (so growth ≠ guesswork)
+
+- ◻ **GitHub stars + clones / week** baseline + monthly trend. Treat as a directional
+  signal, not the goal.
+- ◻ **Install signal from claudemarketplaces** (they publish install counts).
+- ◻ **Issue/PR rate** — the right signal for "kit is being used in real projects." A repo
+  with zero issues is either perfect or unused; in practice, the second.
+- ◻ **Cite-counts on AGENTS.md examples** — if bedrock appears in others' kit READMEs as
+  "the comprehensive React/Next.js example," that's the highest-quality adoption signal.
+
+### What "done" looks like for Phase 8
+
+A project starting fresh in 2026 finds bedrock through aitmpl / claudemarketplaces /
+awesome-claude-code-toolkit, runs `/plugin install bedrock@zos`, gets `AGENTS.md` +
+constitution + ESLint plugin + bundled docs in one step, and ships with the layered
+enforcement working from day one. No fork. No reinventing the architecture/governance
+layer. That's the bar; everything else is intermediate.
+
 ---
 
 ## Known follow-ups (small, do anytime)
