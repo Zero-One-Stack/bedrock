@@ -89,6 +89,7 @@ The "why" and the compliant patterns for each ban are in the rule files below.
 | Composing a multi-part component (Tabs/Dialog/Menu); polymorphism (`asChild`); headless behavior library | `rules/component-composition.md` |
 | Building a form; choosing/adding a form primitive (Field, Input, Combobox, …) | `rules/form-primitives.md` |
 | Writing Storybook (CSF3, autodocs, play, a11y addon, visual regression, theme matrix) | `rules/storybook.md` |
+| Adding an icon; choosing an icon library; icon a11y | `rules/icon-system.md` |
 | Picking / swapping the styling engine                | `rules/styling-engine.md`           |
 | Styling anything; adding a color/space/etc.          | `rules/styling-and-tokens.md` (recommended pattern, any engine) |
 | Dark mode, multi-brand, forced-colors, RTL, SSR-flash | `rules/theming.md`                 |
