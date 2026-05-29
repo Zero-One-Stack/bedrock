@@ -34,6 +34,25 @@ failures. Observability is the feedback loop that keeps the other rules honest i
   Web-Vitals integration — so LCP/INP/CLS are measured on real users, not just in the lab.
 - Record the chosen tracker + DSN location (env, not committed) in `project-specifics.md`.
 
+## Telemetry per FSD layer (what to emit, from where)
+
+Each FSD layer owns a different metric class. Emitting them at the wrong layer either
+double-counts or buries the signal under unrelated noise.
+
+| Layer | Owns | Example metric names |
+| --- | --- | --- |
+| **entity** | Read failures + read latency. | `read.<model>.error`, `read.<model>.duration_ms` |
+| **feature** | Action success/failure/duration. | `action.<verb>.success`, `action.<verb>.fail`, `action.<verb>.duration_ms` |
+| **widget** | Render performance + interactivity for composed blocks. | `render.<widget>.lcp`, `render.<widget>.interactive` |
+| **page** | Route-level timing + navigation. | `route.<path>.ttfb`, `route.<path>.cls`, `route.<path>.inp` |
+| **shared/lib** | Errors only (no per-call metrics — too noisy). | `lib.<purpose>.error` |
+| **shared/api** | Transport errors (HTTP non-2xx, Zod parse fail). | `api.<endpoint>.error`, `api.<endpoint>.duration_ms` |
+| **app/providers** | Bootstrap timing + auth/session lifecycle. | `app.boot.duration_ms`, `app.session.refresh`, `app.session.expired` |
+
+The actual metric names follow the project's monitoring vendor's conventions (Datadog dot-
+notation, Honeycomb dataset+field, Prometheus snake_case). The kit's contract is the
+**layer-to-class mapping** — pick the names per the vendor in `project-specifics.md`.
+
 ## Analytics & logging
 
 - Analytics events are **named by intent** and carry **no PII**. Get consent where required

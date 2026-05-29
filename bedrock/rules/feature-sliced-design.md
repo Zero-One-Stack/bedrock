@@ -36,7 +36,12 @@ src/
 ```
 
 > **`processes/` is deprecated — do not add it.** Cross-page flows live in `app` or are composed by
-> a `page`. Steiger's `fsd/no-processes` flags it.
+> a `page`. Steiger's `fsd/no-processes` flags it. **Multi-step wizards live in a `widget` slice:**
+> a wizard is "a complete self-contained block" (the widget definition) that composes feature
+> steps. Step state — current step, accumulated form values, can-go-next, can-go-back — lives
+> in `widgets/<wizard-name>/model/`. Each step's form + submit logic stays in its own
+> `feature/<step-action>/`. The widget orchestrates; the features execute. Don't reach for a
+> `processes/` revival, and don't drill step state through the page.
 
 Each layer is one job:
 
@@ -290,6 +295,19 @@ import { EmployeeCard } from '@/entities/employee';
 - **No barrel re-export loops** — a slice's own files import siblings by leaf path, never the slice's
   own `index.ts`. (Cycle mechanics in `component-structure.md`.)
 - **No layer-level `index.ts`** — the public API is per-slice, not per-layer (Steiger `fsd/no-layer-public-api`).
+- **Use `export type { … }` for type-only exports.** A bare `export { EmployeeSchema, type Employee }`
+  is fine; a `export { type Employee }` is fine; an `export { Employee }` for a type-only symbol
+  pulls runtime cost into the consumer's bundle even though the symbol vanishes at compile time
+  (some bundlers treat the import as a side-effect carrier).
+- **Mark deprecated exports with `@deprecated` JSDoc.** The annotation surfaces in every consumer's
+  IDE and in TypeScript's compiler diagnostics:
+  ```ts
+  /** @deprecated Use `useEmployeeQuery` — this hook is removed in v3. */
+  export { useEmployeeLegacy } from './hooks/use-employee-legacy';
+  ```
+  Pair the annotation with an ADR (`docs/adr/`) explaining the replacement. The
+  `_deprecated-` slice prefix from the Migration moves section is for entire slices; per-symbol
+  deprecation uses `@deprecated` instead.
 
 ## FSD on Next.js App Router (the layer-name collision, solved)
 
@@ -447,6 +465,79 @@ never reused **stays in that page**, not in `widgets`. Steiger's `fsd/insignific
 - A **widget** is not a mandatory composition layer — small compositions can live in the page. Don't
   wrap a single feature in a widget just to have one.
 
+## Migration moves (extract a slice, retire a slice)
+
+Slices are not immutable; they are extracted when reuse becomes real, and retired when they
+stop being needed. The kit documents the move so it stays consistent across teams.
+
+### Extract: inline page UI → widget / feature
+
+When a block initially built inside `pages/<route>/ui/` is now needed on a second screen
+(reuse is real), promote it:
+
+1. **Create the destination slice** (`widgets/<block>/` or `features/<action>/`) with the
+   standard `ui/`, `model/`, `api/` segments per the singular-unit test.
+2. **Move the files** without rewriting; preserve the component's public surface.
+3. **Add the slice's `index.ts`** exporting the public API.
+4. **Replace the inline usage in the page** with an import from the new slice's barrel
+   (`import { GrievanceDetail } from '@/widgets/grievance-detail';`).
+5. **The second consumer** (the new screen) imports from the same barrel.
+6. **Update `project-specifics.md`** with a one-line note: "extracted `grievance-detail`
+   widget from `pages/active-grievances` on 2026-05; second consumer:
+   `pages/grievance/[id]`."
+7. **Update `CODEOWNERS`** if the new slice belongs to a different team than the source
+   page.
+
+Run `/verify-build` after the extract — Steiger's `insignificant-slice` should now pass
+because the new slice has ≥2 consumers.
+
+### Retire: collapse an insignificant slice back
+
+A widget/feature created speculatively that never picked up a second consumer is the
+insignificant-slice trap. The retire move:
+
+1. **Verify it really is unused** — `grep` the slice's exports across the codebase. If the
+   only consumer is the original page, it's a retire candidate.
+2. **Inline the files back** into the original consumer (`pages/<route>/ui/` or the parent
+   widget's `ui/`).
+3. **Delete the slice folder**.
+4. **Remove its barrel exports** from any parent (e.g. drop the widget's import in the
+   page slice's `index.ts`).
+5. **Update `project-specifics.md`** with the retire reason.
+
+### Graveyard: retiring an entity that's been replaced
+
+When an entity is superseded by a different model (a `LegacyEmployee` → `Employee`
+migration), the retire is more delicate because external consumers may still need the type
+during the transition:
+
+1. **Rename the dying slice** with a `_deprecated-` prefix (`entities/_deprecated-employee/`)
+   — the prefix makes the deprecation visible in every import path and IDE autocomplete.
+2. **Keep the slice's `index.ts`** re-exporting from the successor for **one release** so
+   existing imports don't break instantly:
+   ```ts
+   // entities/_deprecated-employee/index.ts
+   /** @deprecated Use `@/entities/employee` directly — this barrel is removed in v3. */
+   export * from '@/entities/employee';
+   ```
+3. **Add an ADR** (`docs/adr/`) explaining the rename + the cut-over date.
+4. **Update every consumer** within the deprecation window (the `@deprecated` JSDoc shows up
+   on each call site in TS/IDE).
+5. **After the release**, delete `entities/_deprecated-employee/` entirely.
+
+Rules for migration moves:
+
+- ❌ Extracting a slice speculatively — wait until reuse is real (the insignificant-slice
+  trap is the entire reason this rule exists).
+- ❌ Renaming a slice in-place during a deprecation — use `_deprecated-` so consumers see
+  the change everywhere immediately.
+- ❌ A graveyard barrel that lingers past one release — kit policy is "one release, then
+  delete." Logged in `project-specifics.md` if the team needs longer.
+- ✅ Extract moves preserve the public surface (consumers updating an import path is the
+  only diff).
+- ✅ Retire moves include a `project-specifics.md` note explaining why.
+- ✅ Entity retires use the `_deprecated-` prefix + a time-boxed graveyard barrel + an ADR.
+
 ## Naming
 
 - **Folders & files: `kebab-case`** — slices (`file-grievance`, `collective-agreement`), files
@@ -456,6 +547,12 @@ never reused **stays in that page**, not in `widgets`. Steiger's `fsd/insignific
 - **Entities = singular nouns** (`employee`, `grievance`); **features = action phrases**
   (`file-grievance`, `resolve-dispute`); **pages = the route**; **widgets = the block**.
 - Layer names are fixed vocabulary — don't rename them even when a business term collides.
+- **Reserved slice names** (forbidden at every sliced layer — `entities/`, `features/`,
+  `widgets/`, `pages/`): `ui`, `lib`, `api`, `config`, `model`, `types`, `utils`, `hooks`,
+  `components`, `helpers`, `constants`, `theme`, `i18n`. Steiger's `fsd/ambiguous-slice-names`
+  flags any slice named the same as a `shared/` segment, and `fsd/segments-by-purpose` flags
+  essence-named groups inside `shared/lib/`. Pick a business-domain name (`employee`,
+  `file-grievance`, `grievance-dashboard`) — never a technical-essence one.
 
 ## Enforcement (this rule is build-breaking, not advisory)
 

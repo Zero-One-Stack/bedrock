@@ -311,6 +311,49 @@ The `add-design-token` skill's state-sibling rule applies per theme: adding a ne
 token in the light theme requires its state siblings in the light theme **and** the dark theme
 (and every brand combination that exists).
 
+## Motion & `prefers-reduced-motion`
+
+Every animation in the kit consumes **motion tokens** (`--motion-duration-*`,
+`--motion-easing-*` — see `styling-and-tokens.md`'s required semantic groups), and every
+animation has a **`prefers-reduced-motion` branch** that either collapses to opacity-only or
+disables the motion entirely. Vestibular-disorder accessibility is not optional.
+
+```css
+.dialog-content {
+  transition:
+    opacity   var(--motion-duration-base) var(--motion-easing-standard),
+    transform var(--motion-duration-base) var(--motion-easing-emphasized);
+  opacity: 0;
+  transform: translateY(8px);
+}
+.dialog-content[data-state='open'] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* The required override: collapse to opacity-only when the user prefers reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .dialog-content {
+    transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
+    transform: none;
+  }
+  .dialog-content[data-state='open'] {
+    transform: none;
+  }
+}
+```
+
+Rules:
+
+- ❌ A `transition` / `animation` declaration without a `prefers-reduced-motion` branch.
+- ❌ Raw durations or easings (`200ms`, `cubic-bezier(…)`) — use the motion tokens.
+- ❌ Auto-playing animations (carousels, hero motion) that don't respect
+  `prefers-reduced-motion`. Auto-play pauses or stops when the preference is set.
+- ✅ Every animated atom in `shared/ui` ships a `prefers-reduced-motion` story (per the
+  Storybook matrix in `storybook.md`).
+- ✅ Engine-specific motion APIs (Framer Motion's `useReducedMotion`, Chakra's `prefers-
+  reduced-motion` aware `motion` props) are allowed — they wrap the same `@media` query.
+
 ## Hard rules (engine-agnostic)
 
 - ❌ More than one theme mechanism in steady state — a Chakra `Provider` AND a custom

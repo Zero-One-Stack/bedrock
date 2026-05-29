@@ -190,11 +190,13 @@ ui/employee-card/
 ├── index.ts                       # this component's public surface (re-exported up to the slice's index.ts)
 ├── employee-card.tsx              # component + exported props type
 ├── employee-card.props.ts         # named props fixtures for stories & tests
+├── employee-card.variants.ts      # variant recipe — only when the component has size/intent/tone (component-composition.md)
+├── employee-card.behavior.ts      # useEmployeeCardBehavior() hook — only when interaction logic outgrows .tsx (component-composition.md)
 ├── employee-card.styles.ts        # token-derived dynamic vars (imports the shared cx; only if needed)
-├── employee-card.module.css       # CSS Module — token vars only
+├── employee-card.module.css       # CSS Module — token vars only (or engine-equivalent — styling-engine.md)
 ├── employee-card.composition.tsx  # wrapper supplying providers/sample data
 ├── employee-card.test.tsx         # Testing Library (.test or .spec — match the repo)
-└── employee-card.stories.tsx      # Storybook (title per the convention below)
+└── employee-card.stories.tsx      # Storybook (title + matrix per storybook.md)
 ```
 
 Rules:

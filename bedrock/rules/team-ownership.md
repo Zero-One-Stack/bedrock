@@ -129,6 +129,56 @@ tags. If it's not the team this work belongs to, say so and route the change thr
 review — don't quietly edit across the boundary. This is the hard ban, applied to AI-written code
 exactly as to a human's (`governance.md`).
 
+## Per-slice ownership marker (optional but recommended)
+
+`CODEOWNERS` covers paths; it doesn't make ownership readable from inside a slice. The
+recommended companion is a one-line `OWNERS` file in each slice root that names the team
+tag — so a developer opening `src/entities/grievance/` sees the owner before they read
+anything else.
+
+```
+# src/entities/grievance/OWNERS
+scope:team-labor-relations
+```
+
+Optional `README.md` per slice — keep it short (purpose + public API surface + open
+questions). Don't duplicate `docs/architecture/`; this is per-slice context, not
+system-wide:
+
+```md
+# entities/grievance
+
+**Owner:** scope:team-labor-relations
+
+The grievance entity — Zod schema, read queries, read-only UI. **Mutations live in
+features/file-grievance and features/resolve-dispute, never here.**
+
+## Public API
+
+- `Grievance`, `GrievanceSchema` — the typed model
+- `getGrievanceById`, `listGrievances`, `listGrievanceSlugs` — server-only reads
+- `useGrievances` — client React Query hook
+- `<GrievanceCard>`, `<GrievanceRow>` — read-only views
+
+## Open questions
+
+- The `severity` field is currently `'low' | 'medium' | 'high'` — labor-relations team
+  is considering adding `'critical'` Q3.
+```
+
+Rules:
+
+- ❌ An `OWNERS` file disagreeing with `CODEOWNERS` — they must match.
+- ❌ A `README.md` per slice that duplicates what `index.ts` already documents (the export
+  list) without adding context (purpose, mutations-live-elsewhere notes, open questions).
+- ✅ One-line `OWNERS` files on every owned slice (or none — pick a stance per repo and
+  apply it everywhere).
+- ✅ Optional `README.md` for slices with non-obvious history, multi-team context, or
+  pending domain decisions.
+- ✅ The `scaffold-component` / `scaffold-service` skills can be extended per repo to seed
+  `OWNERS` when scaffolding into a new slice (record the per-repo automation in
+  `project-specifics.md`).
+
 ## Hard rules
 
 - ❌ **Editing another team's owned area without that team's review** (the `CLAUDE.md` hard ban).

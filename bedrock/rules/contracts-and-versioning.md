@@ -25,6 +25,7 @@ for non-atomic deploys.
 | Host ↔ remote (Tier 3) | The federated **`./Module` export** signature | the remote's `exposes` |
 | App ↔ BFF / API | The **OpenAPI spec or shared Zod schema** (`services-and-data.md`) | `packages/contracts/` or the service `*.types.ts` |
 | Any consumer ↔ shared package | The package's **public API** (`index.ts` exports) + its **semver** | `shared/*` / `packages/*` |
+| Any consumer ↔ `shared/ui` design system | The **component API** (props), **token contract** (semantic token names), **theme support** (light/dark/forced-colors/RTL), and **default variant behavior** — together they're the design-system version | `shared/ui/*` + `tokens/*` |
 | Shared singleton (React Query, i18n, router) | The **major version** all parts agree on | the workspace `package.json` |
 
 A contract has an **owner** (the stewarding team, `team-ownership.md`) and a **version**. Consumers
@@ -42,6 +43,26 @@ depend on a *version range*, not on "whatever's on main."
   not a unilateral one.
 - **Never reach past the contract.** No deep-importing a shared package's internals, no consuming a
   zone's private routes — the contract is the *only* coupling point (this is why the split exists).
+
+### Design-system-specific MAJOR triggers
+
+The `shared/ui` design system has its own set of breaking-change triggers — even when no
+component prop name changed:
+
+- **Removed or renamed atom/molecule/organism** — consumers' imports break.
+- **Removed or renamed semantic token** — consumers' CSS / Tailwind config / Chakra theme
+  reference disappears.
+- **Default variant changed** (`<Button>`'s default `intent` flips from `primary` to
+  `subtle`) — visual regression across every untouched consumer.
+- **Contrast ratio regression on a themed token** — even if the name didn't change, the
+  rendered output may now fail AA in dark or `forced-colors`.
+- **Headless library swap** (Radix → Base UI in `shared/ui` itself) — consumers that
+  wrap or extend the primitives see API surface changes.
+- **Theme attribute / brand attribute mechanism change** (moving from `class="dark"` to
+  `data-theme="dark"`) — consumer styles keyed on the old mechanism break.
+
+These all warrant a MAJOR bump and the expand-migrate-contract path below. Document each in
+an ADR (`adr.md`) and the migration in `project-specifics.md` per `governance.md`.
 
 ## Breaking changes: expand → migrate → contract (the only safe path)
 

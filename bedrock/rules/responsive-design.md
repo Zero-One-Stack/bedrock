@@ -98,6 +98,51 @@ during render without a guard.
 - Images: always `next/image` with `sizes` set for responsive art; reserve space to avoid CLS
   (see `performance.md`). Use logical properties (`padding-inline`, `margin-block`) for RTL safety.
 
+## Density modifiers (optional — only when the product supports compact/comfortable)
+
+When the product needs a density mode (compact dashboard vs. comfortable consumer view),
+density is **an attribute on a wrapper element**, not a prop drilled through every component.
+The token system holds the density-modifier values (`styling-and-tokens.md` lists `density-
+{compact,comfortable,spacious}` as the optional group); components use **`@container
+style()`** queries to read it.
+
+```html
+<section data-density="compact">
+  …all descendants pick up the compact spacing/sizing tokens via the cascade…
+</section>
+```
+
+```css
+/* shared/ui/atoms/button/button.module.css */
+.root {
+  padding-block:  var(--space-inset-md);
+  padding-inline: var(--space-inset-lg);
+  block-size:     var(--size-control-md);
+}
+
+/* Density override via container style query — no prop drilling. */
+@container style(--density: compact) {
+  .root {
+    padding-block:  var(--space-inset-sm);
+    padding-inline: var(--space-inset-md);
+    block-size:     var(--size-control-sm);
+  }
+}
+```
+
+The wrapper sets `--density: compact` (or `comfortable`/`spacious`), and any descendant
+component with a `@container style(--density: compact)` block flips its sizing. No
+component branches on a `density` prop; the cascade does it.
+
+Rules:
+
+- ❌ A `density` prop drilled through component props. Use `data-density` on a wrapper.
+- ❌ Hand-picking `--size-control-sm` per component for the compact mode. Use the
+  `@container style()` mechanism and the same `*-md` / `*-sm` tokens.
+- ❌ Three density modes when two are enough (compact + comfortable is the typical pair).
+- ✅ Density is a single attribute on a wrapper; components opt in via container style
+  queries; no prop drilling.
+
 ## Testing responsiveness
 
 - **Storybook viewports** (`@storybook/addon-viewport`): every layout-bearing story exercises
