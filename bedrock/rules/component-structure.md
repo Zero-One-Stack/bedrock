@@ -210,17 +210,14 @@ Rules:
 - No hardcoded user-facing strings — accept via props (presentational `shared/ui`) or `useTranslation`.
 - A trivial wrapper may collapse to `*.tsx` + `index.ts` + `*.test.tsx` + `*.stories.tsx`.
 
-### Storybook title convention (so titles never drift)
+### Storybook (see `storybook.md` for the full contract)
 
-The `title` is the component's place in the FSD tree — **not** a guess. Use exactly:
-
-- **`shared/ui` (atomic sub-convention)** → `Shared/Atoms/<Name>`, `Shared/Molecules/<Name>`, `Shared/Organisms/<Name>`.
-- **Entity components** → `Entities/<Model>/<Name>` (singular model, PascalCase).
-- **Feature components** → `Features/<Action>/<Name>`.
-- **Widget components** → `Widgets/<Block>/<Name>`.
-- **Page-private UI** → `Pages/<Route>/<Name>`.
-
-`<Name>` is the human display name (e.g. `Employee Card`). One Storybook tree mirrors the FSD tree.
+Every component file has a sibling `*.stories.tsx`. The Storybook `title` mirrors the FSD
+address (`Shared/Atoms/<Name>`, `Entities/<Model>/<Name>`, etc.) — **the full title table,
+the autodocs requirement, the play-function rule, the theme/viewport/forced-colors/RTL matrix,
+the a11y addon configuration, and the visual-regression policy all live in `storybook.md`.**
+The component's file set just needs to include the stories file; the contract for what goes
+inside is centralized.
 
 ## Templates
 
