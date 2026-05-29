@@ -57,6 +57,76 @@ Never copy server data into client state. Read it from the query cache (or recei
                                                                └→ top-of-tree re-fetches → fresh data flows back down
 ```
 
+## RSC ↔ Client serialization (what may cross the boundary)
+
+Data crossing the RSC → Client Component boundary must **serialize**. React serializes props
+on this boundary using a format slightly stricter than JSON. The kit's rule: every entity
+query returns a **Zod-parsed plain object** (POJO) at the boundary, and only POJO-shaped
+values cross.
+
+What survives the boundary:
+
+- ✅ Plain objects (`{ id, status, … }`), arrays of them.
+- ✅ Primitives: `string`, `number`, `boolean`, `null`, `undefined`, `bigint`.
+- ✅ `Date` instances (Next.js + React serialize them — but consume on the client only via
+  the props you receive; don't re-instantiate from a string-pretending-to-be-a-date).
+- ✅ `Map`, `Set` (React 19 — verify your installed version supports them; the kit's safe
+  default is "convert to array of entries on the server, reconstruct on the client only if
+  needed").
+- ✅ Promises (RSC can pass a promise as a prop; the client awaits it via `use()`).
+
+What does NOT survive:
+
+- ❌ **Class instances** (a Mongoose document, a Sequelize row, a Date subclass). React
+  throws or silently produces `{}`. Map to a POJO before the boundary.
+- ❌ **Functions**. The boundary is data-only. To pass behavior, mark the client component
+  `'use client'` and define handlers there; or pass a Server Action reference (Next.js
+  serializes server actions specifically as opaque tokens).
+- ❌ **Cyclic references**, **`Symbol`**, custom serializers.
+- ❌ **`undefined` inside arrays** in some serializers — safer to omit or use `null`.
+
+The rule that catches every variant of this bug: **entity queries return what Zod parsed.**
+Zod's output is by construction a POJO of the shape you declared; there's nothing else for
+React to choke on.
+
+```ts
+// entities/employee/api/employee.api.ts — already in the kit's template; this is WHY.
+export async function fetchEmployees(): Promise<Employee[]> {
+  const res = await fetch(ENDPOINTS.LIST);
+  if (!res.ok) throw new Error(`Failed: ${res.status}`);
+  return EmployeeSchema.array().parse(await res.json());  // Zod returns POJOs only
+}
+```
+
+When the entity model has a domain Date that the UI displays, convert at the entity boundary
+(in `model/<model>.ts`'s `z.coerce.date()` or a `z.string().datetime()`) so the rest of the
+codebase consumes the typed shape consistently.
+
+```ts
+// entities/grievance/model/grievance.ts
+export const GrievanceSchema = z.object({
+  id: z.string(),
+  filedAt: z.string().datetime(),     // ISO string — survives boundary trivially
+  // …or use z.coerce.date() if components prefer Date instances; both work.
+});
+```
+
+What this means for **page → widget → feature** prop flow:
+
+```tsx
+// pages/active-grievances/ui/ActiveGrievancesPage.tsx (RSC)
+import { listGrievances } from '@/entities/grievance';
+import { GrievanceDashboard } from '@/widgets/grievance-dashboard';
+
+export async function ActiveGrievancesPage() {
+  const grievances = await listGrievances();   // Zod-parsed POJOs
+  return <GrievanceDashboard grievances={grievances} />;   // crosses RSC→Client boundary safely
+}
+```
+
+The page passes plain data down. The widget (client component) consumes it directly — no
+re-fetch, no re-parse, no rehydration step beyond React's standard one.
+
 ## Entity reads — `entities/<model>/api/` (RSC-first)
 
 ```
@@ -267,6 +337,7 @@ export function FileGrievanceForm() {
 - ❌ An `entities/<x>/api/*.queries.ts` **without `import 'server-only';`** — silent client-bundle leak. PreToolUse hook blocks it.
 - ❌ A `features/<x>/api/*.action.ts` **without `'use server';`** at the top — Next.js may expose it as a client RPC. Hook-blocked.
 - ❌ Mixing `useQuery` (client) and `import 'server-only'` (server) in the **same** file — split into `<model>.queries.ts` (server) and `<model>.hooks.ts` (client).
+- ❌ Passing **class instances**, **functions**, or **cyclic references** across the RSC → Client boundary. Return Zod-parsed POJOs from entity queries; Server Actions can cross as opaque references (Next.js serializes them as tokens). See "RSC ↔ Client serialization" above.
 - ✅ Reads split: server-only `getX`/`listX` in `<model>.queries.ts` (RSC) + client `useX` in `<model>.hooks.ts` (React Query); writes in feature `api/` (Server Action) that invalidate.
 - ✅ Stable, namespaced query keys (`xKeys` object); one Zod schema per shape; derive types via `z.infer`.
 - ✅ Reads flow down as props; writes flow up then re-fetch at the top.
