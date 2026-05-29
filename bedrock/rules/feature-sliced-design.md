@@ -161,6 +161,37 @@ features/
     index.ts    public API: export { FileGrievanceButton, FileGrievanceForm }  — NOT internals
 ```
 
+### `shared/lib` — group early by purpose (not by essence)
+
+`shared/lib/` is where business-agnostic utilities live: the class-merge `cx`, formatters,
+date helpers, the Slot helper, the variants recipe, DOM utilities, hooks. **Pre-group by
+purpose from day one** — a flat list grows past 15 modules quickly and Steiger's
+`fsd/shared-lib-grouping` rule warns above that threshold. Group folders are *purposes*
+(what the code is for), never *essences* (what the code is):
+
+```
+shared/lib/
+├── cx/             class-merge util — the kit's one cx helper
+├── slot/           the Slot polymorphism helper (component-composition.md)
+├── variants/       the recipe() helper (component-composition.md)
+├── date/           date parsing/formatting helpers
+├── format/         string/number formatters (currency, percent, list)
+├── dom/            DOM/event helpers (use-resize, use-click-outside)
+├── url/            URL building / query-string helpers
+├── observability/  the captureException wrapper (observability.md)
+├── error-boundary/ the shared ErrorBoundary
+├── middleware/     Next.js middleware composers (nextjs-app-router-fsd.md)
+└── instrumentation/ register() for Sentry/OTel (nextjs-app-router-fsd.md)
+```
+
+> ❌ `shared/lib/hooks/`, `shared/lib/utils/`, `shared/lib/components/`, `shared/lib/types/` —
+> all banned (`segments-by-purpose` flags essence-named groups even one level deep).
+> A hook that formats a date goes in `shared/lib/date/`, not `shared/lib/hooks/`.
+>
+> When the count of purpose-folders itself grows past 15, the kit's answer is the same:
+> coarser groups (e.g. fold `dom/`, `url/`, `cx/` into `web/`). Steady-state aim: ~10
+> purpose folders for the `shared/lib` root.
+
 ## The Public API barrier (the slice's contract)
 
 Every slice has a root `index.ts` that **is** its public contract. Outside code imports the slice
