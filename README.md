@@ -1,210 +1,152 @@
-# Bedrock — Next.js / React engineering standards for Claude Code
+<p align="center">
+  <img src="assets/bedrock-logo.png" alt="Bedrock logo" width="220" />
+</p>
 
-> A **Claude Code plugin** that ships enforced **Next.js** + **React** engineering standards: a **Feature-Sliced Design (FSD)** architecture (layers · slices · segments · the `@x` public-API rule, enforced by **Steiger**) on an **Nx monorepo** (modular monolith → **Multi-Zones** → **Module Federation micro-frontends**), an **engine-agnostic styling layer** (CSS Modules / Tailwind / Chakra v3 / vanilla-extract / Panda CSS — project picks one) with **design tokens** + atomic design recommended inside `shared/ui`, **React Query** data patterns, **accessibility** (a11y), **TypeScript** quality gates, and an **enterprise governance** layer — **ADRs**, a **tech radar**, **CI fitness functions**, **policy-as-code** (OPA/Rego), and **managed settings**.
+<h1 align="center">Bedrock</h1>
 
-Portable, **enforced** engineering standards for [Claude Code](https://claude.com/claude-code),
-distributed as a plugin. One constitution — hard bans, rules, agents, scaffolding skills, and an
-enterprise governance layer — applied the same way to every Next.js / React project, with
-per-project memory.
-
-This repo is a **Claude Code plugin marketplace** (named `zos`). It ships **one plugin, `bedrock`**:
-the universal constitution *and* the enterprise governance layer (managed-settings, enforcement
-hooks, ADRs, tech-radar, CI fitness functions, policy-as-code), merged into a single plugin.
-
-> Earlier drafts split this into a base kit plus a separate `nextjs-react-enterprise` overlay. They
-> are now one plugin — the governance pieces are an optional second init step (`enterprise-init`),
-> not a separate install.
-
-## The architecture: Feature-Sliced Design
-
-Every frontend codebase answers one question thousands of times — **where does this file go, and
-what may it import?** Bedrock's answer is [Feature-Sliced Design](https://feature-sliced.design/)
-(FSD): a fixed, *mechanically checkable* layering, so that question stops being a debate (and stops
-being answered *consistently wrong* by an AI agent placing forty files at machine speed).
-
-Six layers under `src/`, most app-specific → most generic. Next.js routing stays in the repo-root
-`app/` as thin re-exports, so FSD's `app`/`pages` layers don't collide with the App Router:
-
-```text
-/app/                          ← Next.js routing ONLY (thin re-exports, no logic)
-  active-grievances/page.tsx   → export { ActiveGrievancesPage as default } from '@/pages/active-grievances'
-/src/
-  app/        # providers, the 'use client' shell, global styles        (no slices — segments only)
-  pages/      # route screens — composition only                        active-grievances/
-  widgets/    # self-contained blocks of a screen                       grievance-dashboard/
-  features/   # user actions that change state (verbs)                  file-grievance/  resolve-dispute/
-  entities/   # domain models: schema, types, read-only UI (nouns)      employee/  collective-agreement/
-  shared/     # business-agnostic UI kit, API client, libs              ui/ api/ lib/ config/
-```
-
-**The one rule that does the work:** a module may import only from layers **strictly below** it —
-never upward, never from another slice on the **same** layer. Each slice is reached only through its
-**public API** (`index.ts`), so a slice's internals can be rewritten without breaking anything
-outside it.
-
-```ts
-// ❌ deep import past the public API           ✅ import the slice's public API
-import { EmployeeCard }                          import { EmployeeCard } from '@/entities/employee';
-  from '@/entities/employee/ui/EmployeeCard';
-```
-
-The single sanctioned same-layer exception is the **`@x` cross-import** (entities only) for a genuine
-domain relationship (a `collective-agreement` that references its `employee`). **Reads flow down**
-(entity queries fetched high in pages/widgets via RSC, passed down as props); **mutations flow up** (a
-feature's Server Action fires, then revalidates). Atomic design is kept as an *optional* grouping
-inside `shared/ui`. Full rules: [`bedrock/rules/feature-sliced-design.md`](bedrock/rules/feature-sliced-design.md).
-
-**How this helps you:** "where does this go?" stops being a review debate; the agent can't quietly
-deep-import, entangle two features, or smuggle a mutation into an entity (each is **build-breaking**,
-caught by Steiger/dependency-cruiser or blocked by a hook); and refactors stay local because every
-slice is reached only through its `index.ts`.
-
-## What's inside
-
-A quick map of what this kit standardizes, so you can tell at a glance whether it fits your stack:
-
-### Frontend architecture — Feature-Sliced Design, Nx monorepo & micro-frontends
-
-- **Feature-Sliced Design (FSD)** as the core architecture: six layers (`app → pages → widgets →
-  features → entities → shared`) under `src/`, downward-only imports, no same-layer slice imports
-  (the `@x` exception on entities), per-slice public APIs, segments by purpose. Next.js routing
-  stays in the repo-root `app/` as thin re-exports of the FSD `pages` layer. Enforced by **Steiger**
-  (the official FSD linter) + dependency-cruiser + eslint-plugin-boundaries.
-- **Nx monorepo** workspace shape: FSD slices become Nx libraries, a shell app composing them, with
-  `shared/{ui,api,lib,config,tokens}` libraries and **module-boundary tags** (one per FSD layer)
-  enforced by `@nx/enforce-module-boundaries`.
-- A deliberate **monorepo decision guide**: **modular monolith** (the default for ~90% of teams) →
-  **Next.js Multi-Zones** (independent per-route deploys) → **Module Federation micro-frontends**
-  (`@module-federation/enhanced`) only at real org/build scale. App-Router-safe by default.
-- `scaffold-monorepo` skill + `monorepo-architect` agent to set up or evolve the workspace.
-
-### Components, design tokens & styling
-
-- **FSD slice/segment** component placement (with atomic design as an optional `shared/ui`
-  sub-convention). **Styling engine is the project's choice** (CSS Modules, Tailwind,
-  Chakra v3, vanilla-extract, Panda CSS, …) — see `rules/styling-engine.md`. **3-tier DTCG
-  design tokens** are the recommended pattern regardless of engine, with an
-  `add-design-token` skill.
-- `scaffold-component` skill + `component-builder` agent for consistent, accessible React
-  components.
-
-### Quality, testing & data
-
-- **TypeScript** strictness and quality rules, **accessibility (a11y)** rules, **responsive design**,
-  **internationalization (i18n)**, **performance** budgets, and **observability** conventions.
-- **React Query** data-fetching patterns; service/data-layer and API **contract & versioning** rules.
-- `scaffold-unit-test` and `scaffold-e2e` skills for test scaffolding; `verify-build` for green-build
-  checks.
-
-### Enterprise governance & policy-as-code
-
-- A locked **org floor** via **managed settings** plus enforcement **hooks** that block banned
-  patterns.
-- **CI fitness functions** (GitHub Actions) that make the standards build-breaking.
-- **Architecture Decision Records (ADRs)** — immutable, append-only decision memory — with `adr`,
-  `adr-index`, and `adr-author` tooling.
-- A **tech radar**, **compliance** rules, **team-ownership** + **release-and-deploy** conventions,
-  and **policy-as-code** with **OPA / Rego** (`package-policy.rego`) plus logged, expiring waivers.
-
-### Agents, skills & slash commands
-
-- **Agents:** `frontend-architect`, `component-builder`, `frontend-reviewer`, `monorepo-architect`,
-  `adr-author`.
-- **Slash commands:** `/architect`, `/component`, `/fe-review`, `/monorepo`.
-- **Skills:** `kit-init`, `enterprise-init`, `sync-kit`, `migrate-to-kit`, `memory-hygiene`,
-  `agents-md-export`, and the scaffolding skills above.
-
-## Install into Claude Code
-
-Run these in any Claude Code session.
-
-```text
-# 1. Add this marketplace (point at the git remote, or a local clone path)
-/plugin marketplace add https://github.com/Zero-One-Stack/bedrock
-
-# 2. Install the plugin (one time, per machine)
-/plugin install bedrock@zos
-
-# 3. In each project, copy the constitution into the repo
-/bedrock:kit-init                  # copies CLAUDE.md + rules/ into ./.claude/, generates ./AGENTS.md
-
-# 4. For client / enterprise projects, also wire the governance layer
-/bedrock:enterprise-init           # hooks, CI fitness functions, ADR + tech-radar scaffolding, policy
-```
-
-**Why step 3 is required.** A plugin auto-loads **skills, agents, commands, and hooks**
-(namespaced `/bedrock:*`) the moment it's installed — but Claude Code plugins **cannot auto-load
-`CLAUDE.md` or `rules/`**; those must physically live in the project. `/bedrock:kit-init` copies
-them in and is idempotent (re-running refreshes the universal rules while preserving the project's
-own `rules/project-specifics.md`).
-
-**Cross-tool out of the box.** `/bedrock:kit-init` also generates a project-root **`AGENTS.md`**
-that mirrors the constitution in the open [AGENTS.md format](https://agents.md/) — so Cursor,
-GitHub Copilot, OpenAI Codex, Aider, Windsurf, and Zed enforce the same rules as Claude Code.
-Re-run `/bedrock:agents-md-export` any time the constitution changes.
-
-> **Prefer a local clone?** `/plugin marketplace add` also accepts a filesystem path — clone the
-> repo and run `/plugin marketplace add ./bedrock` (or the path to your clone).
-
-### Verify it worked
-
-In a target project, start Claude Code and check:
-
-1. `/bedrock:kit-init`, `/bedrock:enterprise-init`, `/architect`, `/component`, `/adr` are
-   available → skills/commands loaded.
-2. `.claude/CLAUDE.md` + `.claude/rules/` exist → constitution copied in.
-3. Ask Claude to "read the constitution" — it should cite `CLAUDE.md` and the routing table.
-
-### Other install methods
-
-The plugin marketplace path above is the recommended one. For **copying the kit into a repo**
-(version-controlled, updated with `/sync-kit`) or deploying the **org-wide locked floor** via
-managed settings/MDM, see the full guide:
-
-→ **[`bedrock/INSTALL.md`](bedrock/INSTALL.md)**
-
-## Keeping projects up to date
-
-- **Plugin installs:** `/plugin update bedrock@zos`, then `/bedrock:kit-init` to refresh the copied
-  `CLAUDE.md` + `rules/`.
-- **Copied installs:** run `/sync-kit` in the project — it pulls changed universal files and **never
-  touches `project-specifics.md`** or your `docs/adr/`.
-- **Improving the standard:** edit the master here, bump the plugin `version`, and projects adopt via
-  update/sync — never by forking the constitution.
-
-## Layout
-
-```
-bedrock/                              # repo root (the 'zos' marketplace)
-├── .claude-plugin/marketplace.json   # the marketplace catalog (the 'zos' marketplace → bedrock)
-├── bedrock/                          # the plugin (plugin root)
-│   ├── .claude-plugin/plugin.json    # plugin manifest (name → /bedrock:* namespace)
-│   ├── CLAUDE.md  rules/             # payload — copied into projects by /bedrock:kit-init
-│   ├── skills/  agents/  commands/  hooks/   # auto-loaded by the plugin
-│   ├── managed-settings/  ci/  policy/  docs/adr/   # governance floor + CI fitness functions
-│   └── INSTALL.md                    # all install paths (plugin / copy / managed-settings)
-├── KIT-PATTERN.md                    # the reusable blueprint for spinning up a new kit
-└── ROADMAP.md                        # shipped + forward phases
-```
-
-## The model
-
-- **Two tiers.** A small **locked org floor** (managed-settings + hooks + CI gates) projects can't
-  weaken, a **delegated constitution** (the rules) they tune via logged, expiring waivers, and
-  **project memory** (`rules/project-specifics.md` + `docs/adr/`) unique to each repo.
-- **Enforcement, not just docs.** Hooks block banned patterns; CI fitness functions make the
-  standards build-breaking; ADRs are immutable, append-only decision memory.
-- **One source of truth.** Improve the standard here, bump the plugin `version`, projects adopt via
-  `/plugin update` or `/sync-kit` — never by forking the constitution.
-
-See **[`ROADMAP.md`](ROADMAP.md)** for what's shipped and what's next.
+<p align="center">
+  Enforced Next.js + React engineering standards for <a href="https://claude.com/claude-code">Claude Code</a>.
+</p>
 
 ---
 
-**Keywords:** Claude Code · Claude Code plugin · Next.js · React · Feature-Sliced Design · FSD ·
-Steiger · slices · segments · Nx · monorepo · micro-frontends · Module Federation · Multi-Zones ·
-modular monolith · design tokens · atomic design · React Query · TypeScript · accessibility (a11y) ·
-i18n · engineering standards · governance · ADR · tech radar · CI fitness functions · policy-as-code ·
-OPA · Rego · managed settings · agents · subagents · skills · slash commands.
+## What is Bedrock?
 
-*Maintained by Zero One Stack. Licensed under [MIT](LICENSE).*
+Bedrock is a **Claude Code plugin** that gives your AI coding agent a fixed set of
+**Next.js + React engineering rules** — and then *enforces* them.
+
+Think of it as a constitution for your frontend codebase. It decides, up front, **where
+every file goes and what it's allowed to import**, what good components and tests look
+like, and which patterns are simply banned. You install it once, run one command in a
+project, and from then on Claude Code (and Cursor, Copilot, Codex, and others) build the
+same way every time — instead of inventing a new structure on every task.
+
+The rules aren't just suggestions in a doc. They're wired into linters, hooks, and CI, so
+breaking them **breaks the build** rather than slipping through review.
+
+## Who is it for?
+
+Teams and solo developers building **Next.js / React** apps who are tired of:
+
+- every project (and every AI agent) laying out files a different way,
+- "where does this go?" being a debate on every pull request, and
+- standards that live in a wiki nobody reads and nothing enforces.
+
+If you want one consistent, machine-checked way to build frontend — especially with an AI
+agent writing a lot of the code — Bedrock is for you.
+
+## What makes it different?
+
+- **One fixed architecture.** Bedrock standardizes on [Feature-Sliced Design](https://feature-sliced.design/)
+  (FSD) **paired with an atomic design system**: a small set of layers under `src/` with
+  strict rules about what can import what, and atomic-design component tiers (atoms →
+  molecules → organisms) inside the shared UI kit. No more arguing about folder structure.
+- **Enforced, not suggested.** Hooks block banned patterns, linters catch bad imports, and
+  CI gates fail the build. The rules hold even when an agent writes 40 files at once.
+- **Built for AI agents.** Ships agents, skills, and slash commands (`/architect`,
+  `/component`, `/fe-review`, …) so Claude Code scaffolds correct code on command.
+- **Works across tools.** It also writes an open-format `AGENTS.md`, so Cursor, GitHub
+  Copilot, Codex, Aider, Windsurf, and Zed follow the same rules as Claude Code.
+- **Scales with you.** Start as a single app, grow into an Nx monorepo, then into
+  micro-frontends — without rewriting the architecture.
+- **Open source.** MIT licensed.
+
+### How the architecture works
+
+Bedrock arranges your code into six layers. **A layer may only import from layers below
+it — never sideways, never up.** That single rule is what keeps an AI agent from
+entangling features or sneaking logic into the wrong place, and it's checked
+automatically.
+
+```mermaid
+flowchart TD
+    A["<b>app</b><br/><i>providers, global shell</i>"]
+    P["<b>pages</b><br/><i>route screens — composition only</i>"]
+    W["<b>widgets</b><br/><i>self-contained blocks of a screen</i>"]
+    F["<b>features</b><br/><i>user actions that change state (verbs)</i>"]
+    E["<b>entities</b><br/><i>domain models: types, read-only UI (nouns)</i>"]
+    S["<b>shared</b><br/><i>atomic-design UI kit, API client, libs — business-agnostic</i>"]
+
+    A --> P --> W --> F --> E --> S
+
+    classDef layer fill:#2f6db0,stroke:#0f3a63,stroke-width:1px,color:#ffffff;
+    class A,P,W,F,E,S layer;
+```
+
+> Every slice is reached only through its public `index.ts`, so internals can be rewritten
+> without breaking anything outside the slice. Full rules:
+> [`bedrock/rules/feature-sliced-design.md`](bedrock/rules/feature-sliced-design.md).
+
+## What do you need?
+
+- **Claude Code** installed.
+- A **Next.js / React** project (new or existing) you want to standardize.
+- About **5 minutes** to run the install steps below.
+
+## Install (3 steps)
+
+Run these in any Claude Code session:
+
+```text
+# 1. Add this marketplace
+/plugin marketplace add https://github.com/Zero-One-Stack/bedrock
+
+# 2. Install the plugin (once per machine)
+/plugin install bedrock@zos
+
+# 3. In each project, copy the rules into the repo
+/bedrock:kit-init           # copies CLAUDE.md + rules/ into ./.claude/, writes ./AGENTS.md
+```
+
+Building a client or enterprise project? Add the governance layer (enforcement hooks, CI
+gates, decision records, policy-as-code):
+
+```text
+/bedrock:enterprise-init
+```
+
+> **Why step 3?** A plugin auto-loads its skills, agents, and commands the moment it's
+> installed — but Claude Code can't auto-load `CLAUDE.md` or `rules/`; those must live
+> inside the project. `/bedrock:kit-init` copies them in and is safe to re-run.
+
+### Check it worked
+
+In a target project, start Claude Code and confirm:
+
+1. `/bedrock:kit-init`, `/architect`, `/component` show up → plugin loaded.
+2. `.claude/CLAUDE.md` and `.claude/rules/` exist → rules copied in.
+3. Ask Claude to "read the constitution" — it should cite `CLAUDE.md`.
+
+Other install paths (copy-into-repo, org-wide locked floor via managed settings) are in
+**[`bedrock/INSTALL.md`](bedrock/INSTALL.md)**.
+
+## Keeping projects up to date
+
+- **Plugin installs:** `/plugin update bedrock@zos`, then `/bedrock:kit-init` to refresh
+  the copied rules.
+- **Copied installs:** run `/sync-kit` — it pulls changed rules and never touches your
+  `project-specifics.md` or `docs/adr/`.
+
+## Learn more
+
+- **[`ROADMAP.md`](ROADMAP.md)** — what's shipped and what's next.
+- **[`bedrock/rules/feature-sliced-design.md`](bedrock/rules/feature-sliced-design.md)** —
+  the architecture rules in full.
+- **[`bedrock/INSTALL.md`](bedrock/INSTALL.md)** — every install method.
+
+---
+
+<details>
+<summary><b>Keywords</b> — what this project covers</summary>
+
+- **Tooling:** Claude Code · Claude Code plugin · agents · subagents · skills · slash commands · AGENTS.md
+- **Stack:** Next.js · React · TypeScript · React Query
+- **Architecture:** Feature-Sliced Design (FSD) · slices · segments · Steiger · Nx · monorepo · modular monolith · Multi-Zones · Module Federation · micro-frontends
+- **UI & UX:** design tokens · atomic design · accessibility (a11y) · i18n · responsive design
+- **Standards & governance:** engineering standards · governance · ADR · tech radar · CI fitness functions · policy-as-code · OPA · Rego · managed settings
+
+</details>
+
+<p align="center">
+  Maintained by <b>Zero One Stack</b> · Licensed under <a href="LICENSE">MIT</a>
+</p>
