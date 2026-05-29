@@ -461,7 +461,8 @@ export default function AppIcon() {
   webhooks/OAuth callbacks, public APIs for 3rd-party clients, or signed-URL proxies; document
   the reason in `project-specifics.md`.
 - ❌ `'use client'` at the top of `app/**/page.tsx` (and `src/pages/<route>/ui/*Page.{tsx,jsx}`)
-  — push it to the interactive feature/widget leaf. Hook-blocked (`block-banned-patterns.sh`).
+  — push it to the interactive feature/widget leaf. Layered enforcement (PreToolUse +
+  ESLint + reviewer; see the matrix in `governance.md`).
 - ❌ `'use client'` on `app/**/layout.tsx` — push providers into `src/app/providers/`, which
   IS the `'use client'` boundary.
 - ❌ A `route.ts` handler that talks to secrets/DB without `import 'server-only';` and an

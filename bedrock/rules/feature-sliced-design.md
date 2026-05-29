@@ -591,11 +591,13 @@ changing what fails CI. Verified against `@feature-sliced/steiger-plugin@0.5.8`:
 | `fsd/no-cross-imports` | OFF — opt-in | Stricter same-layer ban than `forbidden-imports` (recommend ON for greenfield). |
 | `fsd/no-higher-level-imports` | OFF — opt-in | Forbids importing from a higher layer regardless of direction (recommended for shared/library packages). |
 
-- The **block-banned-patterns** hook blocks several FSD/Next.js mistakes at write time:
-  deep cross-slice imports past a slice's `index.ts`; `@x` segments or `@x/` imports on
+- The **block-banned-patterns** hook is the **first layer** at write time (Edit/Write/MultiEdit):
+  it catches deep cross-slice imports past a slice's `index.ts`; `@x` segments or `@x/` imports on
   `features/widgets/pages` (entities-only); `'use client'` at the top of `app/**/page.tsx` or
   `src/pages/<route>/ui/*.tsx`; entity `*.queries.ts` missing `import 'server-only';`; feature
-  `*.action.ts` missing `'use server';`.
+  `*.action.ts` missing `'use server';`. **It is not the only layer** — see the enforcement
+  matrix in `governance.md` for what catches what (and what hooks CAN'T catch: pipe mode, MCP
+  subagents, shell-issued writes, partial Edits).
 - `/verify-build` runs Steiger + depcruise and treats a violation (or a new cycle) as a failure.
 
 ## Hard rules
@@ -605,10 +607,10 @@ changing what fails CI. Verified against `@feature-sliced/steiger-plugin@0.5.8`:
 - ❌ **Deep import** past a slice's `index.ts` (public-API sidestep); `export *` in a barrel; a layer-level barrel.
 - ❌ **`processes/` layer** (deprecated); **segments named by essence** (`components/hooks/utils/modals`).
 - ❌ **Business terminology in `shared`**; **mutations or action buttons in an `entity`**; **a full-screen feature**; **layout styling or business logic in `app`/route files**.
-- ❌ **`'use client'` at the top of a page/route** (`app/**/page.tsx` or `src/pages/<route>/ui/*.tsx`) — push it to a feature/widget leaf. Hook-blocked.
-- ❌ **Entity `*.queries.ts` without `import 'server-only';`** — silent client-bundle leak of secrets/DB calls. Hook-blocked.
-- ❌ **Feature `*.action.ts` without `'use server';`** — Next.js may expose it as a client RPC. Hook-blocked.
-- ❌ **`@x` on `features/widgets/pages`** — entities-only. Hook-blocked.
+- ❌ **`'use client'` at the top of a page/route** (`app/**/page.tsx` or `src/pages/<route>/ui/*.tsx`) — push it to a feature/widget leaf. Caught at write-time by the PreToolUse hook on Write, by ESLint on existing code, and by the reviewer agent on diff (`governance.md`'s enforcement matrix).
+- ❌ **Entity `*.queries.ts` without `import 'server-only';`** — silent client-bundle leak of secrets/DB calls. PreToolUse hook catches Write; ESLint backstops Edits and existing code.
+- ❌ **Feature `*.action.ts` without `'use server';`** — Next.js may expose it as a client RPC. Same layered enforcement.
+- ❌ **`@x` on `features/widgets/pages`** — entities-only. PreToolUse hook + Steiger `fsd/forbidden-imports` + ESLint backstop.
 - ❌ **An "insignificant" slice** (referenced 0–1 times) created speculatively — keep it in the page until reuse is real.
 - ✅ Imports flow strictly downward; every slice has a minimal explicit public API; segments named by purpose.
 - ✅ Reads fetched high (pages/widgets via entity queries) and passed down as props; mutations in features that then invalidate.

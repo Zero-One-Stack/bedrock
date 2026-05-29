@@ -334,8 +334,8 @@ export function FileGrievanceForm() {
 - ❌ A **form schema in `shared`** — it lives in the owning feature's `model/`.
 - ❌ Components calling `fetch` directly, or importing a slice's api by deep path. Go through the slice's public API.
 - ❌ Untyped responses. Validate with Zod at the api boundary.
-- ❌ An `entities/<x>/api/*.queries.ts` **without `import 'server-only';`** — silent client-bundle leak. PreToolUse hook blocks it.
-- ❌ A `features/<x>/api/*.action.ts` **without `'use server';`** at the top — Next.js may expose it as a client RPC. Hook-blocked.
+- ❌ An `entities/<x>/api/*.queries.ts` **without `import 'server-only';`** — silent client-bundle leak. Layered: PreToolUse hook (Write), ESLint (existing code), reviewer. See `governance.md`.
+- ❌ A `features/<x>/api/*.action.ts` **without `'use server';`** at the top — Next.js may expose it as a client RPC. Same layered enforcement.
 - ❌ Mixing `useQuery` (client) and `import 'server-only'` (server) in the **same** file — split into `<model>.queries.ts` (server) and `<model>.hooks.ts` (client).
 - ❌ Passing **class instances**, **functions**, or **cyclic references** across the RSC → Client boundary. Return Zod-parsed POJOs from entity queries; Server Actions can cross as opaque references (Next.js serializes them as tokens). See "RSC ↔ Client serialization" above.
 - ✅ Reads split: server-only `getX`/`listX` in `<model>.queries.ts` (RSC) + client `useX` in `<model>.hooks.ts` (React Query); writes in feature `api/` (Server Action) that invalidate.

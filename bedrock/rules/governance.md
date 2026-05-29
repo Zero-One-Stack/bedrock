@@ -43,6 +43,71 @@ Tier 0 is **not** waivable by a project. Changing it is an org-level decision to
   produced by normal work, not a separate compliance effort.
 - **Config tampering:** the `ConfigChange` hook can flag unauthorized edits to settings/skills.
 
+## The enforcement matrix (what catches what, where)
+
+Bedrock's enforcement is **layered**: PreToolUse hooks at write time, ESLint/Stylelint as you
+type and on commit, Steiger/dependency-cruiser/OPA in CI, and the `frontend-reviewer` agent
+on every diff. The layers are designed to backstop each other — **no single layer is a
+guarantee**, and writing prose as if it were is overclaiming.
+
+| Rule | Hook (write-time) | ESLint/Stylelint | Steiger/dep-cruiser/OPA (CI) | Reviewer agent |
+| --- | --- | --- | --- | --- |
+| Deep slice import past `index.ts` | ✓ (Edit/Write/MultiEdit) | ✓ (`eslint-plugin-boundaries` / `eslint-plugin-bedrock`) | ✓ (Steiger `fsd/no-public-api-sidestep`) | ✓ |
+| `@x` on `features/widgets/pages` | ✓ | ✓ | ✓ (Steiger `fsd/forbidden-imports`) | ✓ |
+| `'use client'` at root `app/**/page.tsx` or page slice screen | ✓ (Write only — file shape needed) | ✓ | — | ✓ |
+| Entity `*.queries.ts` missing `import 'server-only';` | ✓ (Write only) | ✓ | — (Next build fails if it ever leaks into a client) | ✓ |
+| Feature `*.action.ts` missing `'use server';` as first statement | ✓ (Write only) | ✓ | — (Next refuses to expose it) | ✓ |
+| Same-layer slice imports | — | ✓ | ✓ (Steiger `fsd/forbidden-imports`) | ✓ |
+| Circular dependencies / barrel cycles | — | ✓ (`import/no-cycle`) | ✓ (`madge --circular`, dep-cruiser) | ✓ |
+| Primitive token use in components | — | ✓ (`eslint-plugin-bedrock`) | ✓ (`check-token-coverage.sh` for CSS engines) | ✓ |
+| Banned dependencies (Effector/Redux for server state) | ✓ (import string match) | ✓ (`no-restricted-imports`) | ✓ (OPA/Conftest on `package.json`) | ✓ |
+| Missing `@deprecated` JSDoc on retired exports | — | ✓ (`eslint-plugin-deprecation`) | — | ✓ |
+| `process.env` outside `shared/config` | — | ✓ (`no-restricted-imports` + custom rule) | ✓ (grep step in fitness) | ✓ |
+| Banned styling engine (the kit's old ban — now removed) | — | — | — | — (engine choice is now project-level, `styling-engine.md`) |
+| Missing test for changed component | — | — | ✓ (coverage threshold in CI) | ✓ |
+| Storybook story + a11y for new component | — | — | ✓ (audit-design-system skill in `--ci` mode) | ✓ |
+
+### Honest limits — what hooks CANNOT enforce
+
+The PreToolUse hook is a **first line of defense, not the only line.** Documented limits:
+
+1. **Pipe mode.** `cat foo.ts | claude` and similar stdin pipelines don't fire the Edit/Write
+   matchers — there's no `tool_input.file_path` to inspect. Files written this way bypass
+   every Edit-shaped check.
+2. **MCP subagents.** File mutations via MCP servers (e.g. a filesystem MCP) don't go through
+   Claude Code's tool layer; PreToolUse never sees them.
+3. **Shell-issued writes.** `printf … > file`, `perl -e 'open …; print …'`, Bash heredocs,
+   `sed -i`, `cat <<EOF > file` — these are Bash tool calls, not Edit/Write. The Bash hook can
+   pattern-match commands, but it's a different (and more permissive) matcher.
+4. **Model rerouting.** The agent can choose Bash over Edit specifically to dodge a hook.
+   Adversarial behavior, but possible.
+5. **Partial Edits.** Hooks see `new_string`, not the post-edit file. A small Edit that
+   doesn't itself contain `'server-only'` is allowed even if the file *already* satisfies the
+   rule — but also if it *doesn't*. The kit's hook restricts directive checks to **Write**
+   only for this reason; ESLint + CI catch the Edit case.
+6. **Missing `jq` / headless runners.** The hook gracefully `exit 0`s when `jq` isn't
+   available — deliberate so it never breaks a CI runner, but it means any environment
+   without `jq` ships without write-time enforcement. CI still catches violations.
+
+**The kit's posture, made explicit:**
+
+- Hooks catch the agent-writes-in-this-session case (fast feedback, blocks the obvious
+  mistakes).
+- ESLint catches *existing* code and refactors that touch but don't satisfy the rule.
+- Steiger / dependency-cruiser / OPA catch tree-wide violations regardless of how the code
+  got there.
+- The `frontend-reviewer` agent reads the diff against the constitution and runs
+  `/verify-build` (which includes the CI checks).
+- The reviewer-of-the-PR (human) is the final gate.
+
+**No "hook-blocked" claim in this kit means "guaranteed."** It means "this layer fires
+synchronously at write time; the other layers backstop." If the matrix above has no row for
+a rule, that rule is documented + reviewer-enforced, not mechanically caught.
+
+> **Source (read for the adversarial view):** the DEV Community post *"What Claude Code Hooks
+> Can and Cannot Enforce"* catalogs hook bypasses in more depth. Anyone shipping rules that
+> claim "enforced" should read it.
+
 ## Model & data policy (agent as untrusted contributor)
 
 - Only **approved models** and **approved MCP servers** (managed `allowedMcpServers`). 
