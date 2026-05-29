@@ -130,6 +130,84 @@ A same-layer dependency is a **code smell**, not a routine pattern. In priority 
 > relationship is complex/circular. Only truly generic, business-free types (a `Nullable<T>`, an
 > `ApiResult<T>`) belong in `shared`.
 
+### Compose-from-above with **headless feature hooks** (the wiring pattern)
+
+"Compose from above" is the rule; **headless feature hooks** are the *mechanism*. A feature
+exposes BOTH a rendered UI (its button/form) AND a hook (`useXFeature()`) that returns the
+imperative API — `{ open, close, isOpen, trigger, mutate, ... }`. The hook is the seam: any
+widget can wire one feature's hook to another feature's UI without the features importing
+each other.
+
+```ts
+// features/file-grievance/index.ts — public API exposes BOTH the UI and the hook.
+export { FileGrievanceForm } from './ui/file-grievance-form';
+export { FileGrievanceButton } from './ui/file-grievance-button';
+export { useFileGrievance } from './model/use-file-grievance';      // ← the headless hook
+```
+
+```ts
+// features/file-grievance/model/use-file-grievance.ts
+'use client';
+import { useState, useCallback } from 'react';
+
+export function useFileGrievance() {
+  const [isOpen, setOpen] = useState(false);
+  const open = useCallback(() => setOpen(true), []);
+  const close = useCallback(() => setOpen(false), []);
+  // …expose what consumers actually need; never internal state shapes.
+  return { isOpen, open, close };
+}
+```
+
+```tsx
+// widgets/grievance-dashboard/ui/grievance-dashboard.tsx — composes BOTH features
+// without either feature importing the other.
+'use client';
+import { useFileGrievance, FileGrievanceForm } from '@/features/file-grievance';
+import { useResolveDispute, ResolveDisputeButton } from '@/features/resolve-dispute';
+import { Dialog } from '@/shared/ui';
+
+export function GrievanceDashboard() {
+  const file = useFileGrievance();
+  const resolve = useResolveDispute({ onResolved: file.close });  // widget wires them
+
+  return (
+    <>
+      <Button onClick={file.open}>File new grievance</Button>
+      <ResolveDisputeButton />
+
+      <Dialog.Root open={file.isOpen} onOpenChange={file.close}>
+        <Dialog.Content>
+          <FileGrievanceForm onSubmitted={resolve.maybeAutoResolve} />
+        </Dialog.Content>
+      </Dialog.Root>
+    </>
+  );
+}
+```
+
+The hook's contract is the same as a headless component (Base UI / Radix style): it owns
+state, exposes handlers and refs, the consumer renders the UI. Three features can now share
+a wizard, a dialog stack, or a multi-step flow — composed by the widget that owns the
+orchestration — and none of the features imports any of the others.
+
+Rules for headless feature hooks:
+
+- The hook's name is `use<Action>` (matches the feature slice name).
+- It returns a **stable, documented object** — `{ open, close, isOpen, ... }`. Don't expose
+  internal state setters (`setIsOpen`); expose intent (`close`).
+- The hook is exported from the slice's `index.ts` (public API).
+- A feature that doesn't expose a hook because nothing composes it yet is fine — add the
+  hook the first time a widget needs to wire it.
+
+What this is NOT:
+
+- ❌ A feature importing another feature's hook to call it internally. That's still a
+  same-layer slice import. The widget calls both hooks; the features don't see each other.
+- ❌ Exposing a hook that returns a feature's internal Zod schema, query keys, or fetcher
+  functions — those stay internal. The hook returns the *imperative API* the widget needs to
+  orchestrate.
+
 ## Slices and segments
 
 - **Slice** = the second level: a partition by **business domain** (`employee`, `file-grievance`,
