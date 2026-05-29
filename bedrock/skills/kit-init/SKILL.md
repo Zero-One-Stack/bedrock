@@ -29,6 +29,7 @@ live in the project. This skill copies them in.
 # Resolve paths (the agent runs these, adapting to the project's CLAUDE.md location convention)
 SRC="${CLAUDE_PLUGIN_ROOT}"
 mkdir -p ./.claude/rules
+mkdir -p ./.claude/docs/external-references
 
 # Universal rules — refresh all EXCEPT project-specifics.md
 for f in "$SRC"/rules/*.md; do
@@ -39,6 +40,10 @@ for f in "$SRC"/rules/*.md; do
   fi
   cp "$f" "./.claude/rules/$base"
 done
+
+# Bundled reference snippets (the "node_modules/next/dist/docs/" pattern — local docs
+# the agent cat's instead of web-fetching). Refresh all on every init.
+cp -R "$SRC"/docs/external-references/* ./.claude/docs/external-references/
 
 # The constitution
 cp "$SRC/CLAUDE.md" "./.claude/CLAUDE.md"
@@ -51,7 +56,8 @@ project, follow with `/bedrock:enterprise-init` to wire the governance/hooks/ADR
 
 ## Done when
 
-`./.claude/CLAUDE.md` + `./.claude/rules/*.md` + `./AGENTS.md` all exist,
-`project-specifics.md` is preserved (or seeded from template if new), and the agent can read the
-constitution. Report files written vs. preserved. On the project's first real task, the Step 0
+`./.claude/CLAUDE.md` + `./.claude/rules/*.md` + `./.claude/docs/external-references/*.md` +
+`./AGENTS.md` all exist, `project-specifics.md` is preserved (or seeded from template if new),
+and the agent can read the constitution and the bundled reference snippets locally without
+WebFetch. Report files written vs. preserved. On the project's first real task, the Step 0
 Recon gate fills `project-specifics.md`.

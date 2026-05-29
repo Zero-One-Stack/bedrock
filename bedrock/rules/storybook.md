@@ -240,6 +240,11 @@ active)`-aware rules — see `theming.md` for the technique.
 - [ ] No per-story matrix overrides (theme/viewport/direction live globally).
 
 ## Sources
+
+**Bundled reference snippets:**
+- `docs/external-references/storybook-9.md` — the kit's full preview.ts config (theme/viewport/forced-colors/RTL matrix), main.ts addons, CSF3 + autodocs template, play function shape, test-runner CI setup, Chromatic vs Playwright snapshot trade-off.
+
+**Library docs:**
 - [Storybook — CSF3 + autodocs](https://storybook.js.org/docs/writing-stories/autodocs)
 - [Storybook — `play` functions](https://storybook.js.org/docs/writing-stories/play-function)
 - [`@storybook/addon-a11y` — test mode](https://storybook.js.org/docs/writing-tests/accessibility-testing)

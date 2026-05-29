@@ -132,6 +132,12 @@ rationale per area: the rule files above.
 > it (e.g. Zod, Next.js, RHF). Before using a library's API, check the **installed version**
 > (`package.json` / lockfile) and confirm the current syntax via **Context7 or official docs** —
 > do not write an API from memory and assume it still exists.
+>
+> **First look locally.** The kit ships curated, cross-checked snippets for its hard-adopt-list
+> libraries in `.claude/docs/external-references/` (Next.js 15 hot spots, React Query v5, RHF
+> Controller pattern, Zod v3/v4 differences, MSW 2.x, Storybook 9). Read those before
+> WebFetching — they cover the patterns the rules use, with version notes, and they don't go
+> stale between training cutoffs.
 
 ## Quality bar
 

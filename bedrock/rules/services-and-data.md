@@ -343,6 +343,15 @@ export function FileGrievanceForm() {
 - ✅ Reads flow down as props; writes flow up then re-fetch at the top.
 
 ## Sources
+
+**Bundled reference snippets (cat locally — no web fetch needed):**
+- `docs/external-references/react-query.md` — QueryClient setup, HydrationBoundary for RSC, key naming, useMutation+invalidate pattern, v5 vs v4 differences.
+- `docs/external-references/react-hook-form.md` — the canonical Controller wiring for the kit's form primitives + zodResolver + async submit + FormProvider.
+- `docs/external-references/zod.md` — v3 vs v4 API differences (z.string().datetime() → z.iso.datetime()), parse vs safeParse, env validation.
+- `docs/external-references/msw-2.md` — MSW 2.x http+HttpResponse syntax (v1's rest.* is GONE), per-test handler override, setupServer + onUnhandledRequest.
+- `docs/external-references/next-15-hot-spots.md` — async params/searchParams, generateMetadata + React cache(), route segment config placement.
+
+**Library docs (for anything not bundled):**
 - [FSD — Slices and segments (api / model)](https://feature-sliced.design/docs/reference/slices-segments)
 - [FSD — The Ultimate Next.js App Router Architecture (entity queries, feature actions)](https://feature-sliced.design/blog/nextjs-app-router-guide)
 - [Next.js — Server Actions and Mutations](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)

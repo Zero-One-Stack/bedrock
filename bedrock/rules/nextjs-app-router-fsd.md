@@ -516,6 +516,11 @@ export default function AppIcon() {
 - [ ] No business logic / layout CSS in any root `app/` file.
 
 ## Sources
+
+**Bundled reference snippets:**
+- `docs/external-references/next-15-hot-spots.md` — async `params`/`searchParams`, `generateMetadata` + React `cache()`, route segment config placement, parallel-route `default.tsx` requirement, `'use client'` on error files, `<html suppressHydrationWarning>`, the `<Script beforeInteractive>` bug.
+
+**Library docs:**
 - [Next.js — Routing fundamentals](https://nextjs.org/docs/app/building-your-application/routing)
 - [Next.js — Loading UI and Streaming](https://nextjs.org/docs/app/building-your-application/routing/loading-ui-and-streaming)
 - [Next.js — Error Handling (`error.tsx` / `global-error.tsx`)](https://nextjs.org/docs/app/building-your-application/routing/error-handling)

@@ -215,6 +215,12 @@ ARIA attributes.
       pattern lives in `services-and-data.md`'s form section + this file).
 
 ## Sources
+
+**Bundled reference snippets:**
+- `docs/external-references/react-hook-form.md` — the canonical Controller wiring used in the example above, including async submit, zodResolver integration, and the FormProvider pattern for wizards.
+- `docs/external-references/zod.md` — the schema patterns that feed RHF (v3 vs v4 API differences).
+
+**Library docs:**
 - [WAI-ARIA Authoring Practices — Combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/)
 - [WAI-ARIA Authoring Practices — Date Picker pattern](https://www.w3.org/WAI/ARIA/apg/patterns/datepicker-dialog/)
 - [WAI-ARIA Authoring Practices — Switch pattern](https://www.w3.org/WAI/ARIA/apg/patterns/switch/)
