@@ -475,6 +475,74 @@ never reused **stays in that page**, not in `widgets`. Steiger's `fsd/insignific
 - A **widget** is not a mandatory composition layer — small compositions can live in the page. Don't
   wrap a single feature in a widget just to have one.
 
+### Resolving the feature-vs-widget-vs-page ambiguity (the #1 FSD friction)
+
+The singular-unit test above is the *definition*; in practice the call is genuinely fuzzy because
+"reusable" and "user value" are judgment words, and even people who understand FSD disagree. The kit's
+tie-breaker is a **default-and-demote algorithm** — start at the *page*, push *down* only when forced —
+which mirrors FSD v2.1's official "Pages First" turn (most code should start in the page and may never
+leave it):
+
+```
+1. Build it INSIDE the page slice (pages/<route>/ui/) first. Always. Finish it there.
+2. Is it the same action a USER performs that mutates state (a verb: file-, resolve-, invite-)?
+     └─ AND it's reused on a 2nd screen, OR genuinely worth isolating for testing/ownership?
+          → extract DOWN to features/<action>/.   (else: leave it in the page)
+3. Is it a self-contained BLOCK that composes ≥2 features/entities into a complete use case
+   (a dashboard panel, a header), AND reused across pages?
+          → extract DOWN to widgets/<block>/.     (else: leave it in the page)
+4. Is it a domain NOUN — a model + its read-only view (employee, grievance)?
+          → entities/<model>/.                     (this one you usually know up front)
+```
+
+Tie-breakers when two answers seem to fit:
+
+- **Verb → feature, noun → entity, block-of-both → widget.** "Resolve a dispute" is a verb (feature);
+  "a dispute" is a noun (entity); "the dispute-resolution panel showing a dispute *and* its resolve
+  button" is a block (widget).
+- **Reuse count decides extraction, not the abstraction's "niceness."** One consumer → it stays in the
+  page (`fsd/insignificant-slice` enforces this). The *second* consumer is the trigger to extract — see
+  "Migration moves" below.
+- **Default to a widget over a feature when unsure** *and* extraction is warranted: a widget is the
+  composition seam (it may own features), so a too-coarse widget is cheaper to split later than a
+  too-fine feature is to merge. But prefer **leaving it in the page** over either.
+- **Full-screen → never a feature.** A feature is context-aware and never full-screen; a full screen is
+  a `page` composing widgets/features.
+
+### When a single page slice gets too big (the v2.1 trade-off, and FSD's open gap)
+
+"Pages First" has a known flip side the FSD maintainers acknowledge but have **not** officially solved
+(GitHub Discussion #716): a large page slice accumulates many *unrelated* blocks (a hero, a banner, a
+listing, a promo rail) scattered across its `ui/`, and there's no second axis of organization inside a
+slice. The community's `@home`-prefix workaround "doesn't scale across pages," and the proposed
+"slices-within-slices" (nesting layers inside a slice) was **declined** — layer names carry global
+semantic meaning, so a `widget` must live in `src/widgets`, not buried inside a page.
+
+The kit's position, in priority order:
+
+1. **First, question whether the blocks are actually one page slice.** Several unrelated blocks on one
+   route is the usual signal that **reuse is already real or imminent** — extract the independent ones
+   *down* to `widgets/` (step 3 above). A "too-big page" is most often an *under-extracted* page. This
+   is the intended FSD answer and it resolves the majority of cases.
+2. **For blocks genuinely local to this one route**, organize *within* the page's `ui/` segment by
+   **purpose/domain-named sub-folders** (the same purpose-not-essence discipline as everywhere else):
+   `pages/home/ui/hero/`, `pages/home/ui/promo-rail/`, `pages/home/ui/featured-grievances/`. These are
+   **plain component folders, not slices** — no nested `model/api`, no nested `index.ts` barrel, no
+   `'use client'` at the page screen (it stays on the leaves). Naming matters here: these sub-folders
+   must be **purpose/domain-named**, never **essence-named** (`components/`, `hooks/`, `modals/`,
+   `utils/` — `fsd/segments-by-purpose` flags those even one level deep) and never **segment-named**
+   (`ui/`, `model/`, `api/` — `fsd/no-reserved-folder-names` flags a folder named like a segment). A
+   purpose-named sub-folder inside `ui/` is *not* a bare segment on a sliced layer, so
+   `fsd/no-segments-on-sliced-layers` (which targets `features/ui/…`-style bare segments) doesn't fire.
+   This gives the second organization axis without inventing fractal layers.
+3. **Do NOT** revive `processes/`, nest FSD layers inside a slice, or use a cross-page `@`-prefix
+   scheme. If a block is shared across pages, it's a `widget` by definition — extract it (1), don't
+   prefix-hack it.
+
+> **Rule of thumb:** a page slice's `ui/` should read as *"this screen's composition + its
+> route-local-only blocks."* The moment a block is reused, or owns its own data/state and composes
+> features, it has outgrown the page → `widgets/`. Record the extraction in `project-specifics.md`.
+
 ## Migration moves (extract a slice, retire a slice)
 
 Slices are not immutable; they are extracted when reuse becomes real, and retired when they
