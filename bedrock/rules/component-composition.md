@@ -213,6 +213,133 @@ Rules:
 - ✅ Ref forwarding is mandatory on every component that supports `asChild`; the ref type
   unions the default element with the most common `asChild` target (typically `<a>`).
 
+## Variant API — a recipe per axis
+
+Components with more than one visual variant (size · intent · tone · density · …) expose
+each axis as a **prop**, and the prop-to-class mapping lives in a sibling **`*.variants.ts`**
+file as a typed *recipe*. This is the variant idiom the kit picks, regardless of styling
+engine — the **shape** of the API is the same; the **implementation** of the recipe varies
+by engine (CSS Modules + `cx`, Tailwind + CVA, Chakra `defineRecipe`, vanilla-extract
+`recipe`, Panda CSS, …).
+
+The shape consumers see:
+
+```tsx
+<Button size="md" intent="primary" tone="neutral">Save</Button>
+```
+
+Rules for the API:
+
+- **Each axis is a single prop with a string-union type** — never booleans
+  (`primary={true}`/`danger={true}` exploding into invalid combinations). Each axis has a
+  documented **default value** so unset props don't break the variant matrix.
+- **Composition over multiplication.** If two axes can be authored independently (size + tone),
+  keep them separate. If they're inseparable (`intent="primary-on-dark"`), the variant IS the
+  union — don't pretend to split it.
+- **Stable prop names across the kit:** `size`, `intent`, `tone`, `variant` (use one of these
+  vocabularies — don't invent `kind`, `level`, `flavor`, `type` per component). Record the
+  repo's chosen vocabulary in `project-specifics.md`.
+- **The recipe file is the source of truth for the matrix.** The `.tsx` accepts the props,
+  passes them to the recipe, and applies the returned classes/styles. No conditional class
+  composition in the `.tsx`.
+
+### Engine-specific recipe (illustrative — pick what the project's engine uses)
+
+```ts
+// shared/ui/atoms/button/button.variants.ts — CSS Modules + the kit's variants helper.
+import { recipe, type VariantProps } from '@/shared/lib/variants';
+import styles from './button.module.css';
+
+export const buttonVariants = recipe({
+  base: styles.root,
+  variants: {
+    size:   { sm: styles.sizeSm,   md: styles.sizeMd,   lg: styles.sizeLg   },
+    intent: { primary: styles.intentPrimary, danger: styles.intentDanger,
+              subtle: styles.intentSubtle },
+    tone:   { neutral: styles.toneNeutral, brand: styles.toneBrand },
+  },
+  defaults: { size: 'md', intent: 'primary', tone: 'neutral' },
+});
+
+export type ButtonVariants = VariantProps<typeof buttonVariants>;
+```
+
+```tsx
+// shared/ui/atoms/button/button.tsx
+import { forwardRef, type ButtonHTMLAttributes } from 'react';
+import { buttonVariants, type ButtonVariants } from './button.variants';
+import { cx } from '@/shared/lib/cx';
+
+export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & ButtonVariants & {
+  asChild?: boolean;
+};
+
+export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
+  function Button({ size, intent, tone, className, ...rest }, ref) {
+    return (
+      <button
+        ref={ref as React.Ref<HTMLButtonElement>}
+        className={cx(buttonVariants({ size, intent, tone }), className)}
+        {...rest}
+      />
+    );
+  },
+);
+```
+
+> **Tailwind:** swap the `styles.*` references for CVA (`cva()`) — the recipe shape is
+> identical. **Chakra v3:** use `defineRecipe` from `@chakra-ui/react`. **vanilla-extract:**
+> use its `recipe` from `@vanilla-extract/recipes`. **Panda CSS:** use `cva` from
+> `@pandacss/dev`. The shape consumers see is always
+> `<Component size={...} intent={...} tone={...} />`.
+
+### Minimal `recipe` helper (create once per repo for CSS-Modules-based projects)
+
+If the project's engine doesn't ship a recipe primitive (CSS Modules + plain CSS), drop this
+small helper into `shared/lib/variants/` once. ~25 lines, fully typed, no runtime cost.
+
+```ts
+// shared/lib/variants/variants.ts
+type VariantsMap = Record<string, Record<string, string>>;
+type Defaults<V extends VariantsMap> = { [K in keyof V]?: keyof V[K] };
+
+export function recipe<V extends VariantsMap>(opts: {
+  base?: string;
+  variants: V;
+  defaults?: Defaults<V>;
+}) {
+  return (props: Defaults<V> & { className?: string } = {}) => {
+    const out: string[] = [];
+    if (opts.base) out.push(opts.base);
+    for (const axis of Object.keys(opts.variants) as Array<keyof V>) {
+      const choice = (props[axis] ?? opts.defaults?.[axis]) as keyof V[typeof axis] | undefined;
+      if (choice && opts.variants[axis][choice as string]) {
+        out.push(opts.variants[axis][choice as string]);
+      }
+    }
+    if (props.className) out.push(props.className);
+    return out.filter(Boolean).join(' ');
+  };
+}
+
+export type VariantProps<T> = T extends (props: infer P) => string
+  ? Omit<P, 'className'>
+  : never;
+```
+
+### Hard rules for variants
+
+- ❌ Boolean variant props (`primary={true}`, `danger={true}`) — use a string union.
+- ❌ Conditional class composition in the `.tsx` (`cx(styles.root, isPrimary && styles.primary,
+  size === 'lg' && styles.lg)`). The recipe owns it.
+- ❌ Inventing a per-component vocabulary (`kind`, `level`, `flavor`, `type`) when `size`/
+  `intent`/`tone`/`variant` would do.
+- ❌ A recipe without **documented defaults** — unset prop combinations must resolve.
+- ❌ Inline-tracking the variant matrix in Storybook — the stories iterate the recipe's keys,
+  not hand-author each combination.
+- ✅ One recipe file per component (`*.variants.ts`); stable vocabulary; defaults declared;
+  matrix iterable from the recipe alone.
+
 ## Behavior split — `*.behavior.ts` (heuristic, not a numeric gate)
 
 A component whose interaction logic is non-trivial (open/close state machine, focus
@@ -388,6 +515,9 @@ export const Dialog = { Root, Trigger, Portal, Overlay, Content, Title, Descript
 
 ## Checklist — a composed component is "done" when
 
+- [ ] Variants (if any) live in `*.variants.ts` as a typed recipe; the `.tsx` applies them
+      without conditional class composition; defaults declared; stable vocabulary
+      (`size`/`intent`/`tone`/`variant`).
 - [ ] Multi-part API exports one namespace object via the slice's `index.ts`; the namespace
       shape matches the wrapped library's actual parts (verified in Recon).
 - [ ] All a11y/keyboard/focus behavior delegated to the approved headless library — no
