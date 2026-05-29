@@ -226,6 +226,53 @@ Authoring rules for these files:
 `nextjs-app-router-fsd.md` covers the placement (inline at root, view component in the page slice's
 `ui/` segment, imported via the `routing.ts` barrel).
 
+## CSS `@layer` ordering (CSS-based engines only)
+
+When the project uses a CSS-emitting engine (CSS Modules, vanilla-extract, plain CSS) declare
+the `@layer` order **once** in the global stylesheet so consumer overrides are predictable.
+Without explicit ordering, "why is my component override losing to the reset" turns into a
+specificity hunt every PR.
+
+Recommended order (low specificity → high):
+
+```css
+/* src/app/styles/globals.css — or wherever the project's global stylesheet lives. */
+@layer reset, tokens, base, components, utilities, overrides;
+
+/* Then import in that order so each lands in the right layer: */
+@import './reset.css'                  layer(reset);
+@import '@/shared/tokens/tokens.css'   layer(tokens);
+@import './base.css'                   layer(base);
+/* Component CSS Modules emit into `components` automatically (their import order doesn't matter). */
+```
+
+| Layer | Holds |
+| --- | --- |
+| `reset`     | The CSS reset (modern-normalize, the engine's preflight, or a hand-rolled one). |
+| `tokens`    | Generated `tokens.css` — primitive + semantic + component custom properties. |
+| `base`      | Element-level defaults (`html { font-family: var(--text-body-md); }`); `:focus-visible` defaults. |
+| `components`| Every CSS Module emitted from `shared/ui` / `entities/*/ui` / etc. |
+| `utilities` | Single-purpose classes (`.sr-only`, `.visually-hidden`) — rare in this kit. |
+| `overrides` | The escape hatch when a third-party widget needs to be re-skinned. Logged in `project-specifics.md`. |
+
+Why this order: a reset shouldn't beat a component, a component shouldn't beat a deliberate
+override, and tokens (custom properties) don't participate in specificity at all — they cascade
+through whichever layer references them.
+
+> **Tailwind:** uses `@layer base / components / utilities` natively — the kit's order is
+> compatible (`reset` becomes `base` in Tailwind's vocabulary). **Chakra v3 / vanilla-extract /
+> Panda / StyleX:** these engines emit their own ordering; the rule applies only to the global
+> CSS the project hand-authors. **Runtime CSS-in-JS:** `@layer` is supported but adds a flush
+> ordering concern; document the engine's `injectGlobal` API instead.
+
+Rules:
+
+- One `@layer` declaration in the global stylesheet — never per-file or per-component.
+- Don't fight the cascade with `!important` to escape the wrong layer — move the rule to the
+  right layer.
+- A new layer (e.g. `print`, `theme`) requires a one-line update to the global declaration
+  and a `project-specifics.md` note. Don't sprinkle layer declarations across files.
+
 ## Hard rules
 
 > The rules below apply **when the repo has opted into tokens** (the recommended path). If the
