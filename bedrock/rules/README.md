@@ -48,6 +48,7 @@
 | `scaffold-e2e`        | Stands up the Playwright harness (one-time) and a per-feature journey spec (happy + failure + auth redirect). | "add E2E"; "test this flow"; a feature ships with no E2E. |
 | `scaffold-monorepo`   | Stands up / grows a shell + features workspace with enforced boundaries. | "set up the monorepo". |
 | `verify-build`        | Proves a change compiles, tokens resolve, **no new cycle**, unit + E2E pass — via the repo's real scripts. | Before declaring any change "done". |
+| `audit-design-system` | Walks `shared/ui` and reports gaps against the kit contract: missing file set, missing public-API export, missing story+autodocs, missing `play`, missing axe assertion, missing form-primitive (vs the 15-baseline), missing required token group. `--ci` flag for CI fitness function. | Periodic health check; before merging design-system PRs. |
 | `migrate-to-kit`      | Brings an existing repo (e.g. Chakra/Effector-based) onto the kit standard incrementally. | Adopting the kit in a non-greenfield project. |
 | `sync-kit`            | Updates a project's universal rules/agents/skills from the vault master **without** touching its `project-specifics.md`. | The constitution improved and a project should adopt it. |
 | `kit-init`            | Copies `CLAUDE.md` + `rules/` into the project (plugins can't auto-load those). | Right after `/plugin install`. |

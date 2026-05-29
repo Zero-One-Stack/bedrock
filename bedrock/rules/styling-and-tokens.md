@@ -248,7 +248,7 @@ Authoring rules for these files:
   (`-hover`/`-pressed`/`-disabled`), without a motion duration+easing pair, without an
   elevation scale, or without a named `z-{base,dropdown,sticky,overlay,modal,popover,toast,
   tooltip}` set is not ship-ready. Will become a `/verify-build` failure once the
-  `audit-design-system` skill (M8, not yet shipped) lands.
+  `audit-design-system` skill (runs the check in `--ci` mode).
 - ❌ **Hand-picked `:hover`/`:active`/`:disabled` colors** on an interactive component. Use
   the `*-hover`/`*-pressed`/`*-disabled` token siblings. If a sibling is missing, add it via
   `/add-design-token` first.

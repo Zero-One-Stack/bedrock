@@ -20,7 +20,7 @@ required` consistently. The kit names the 15 primitives once so the discussion i
 The set is structured: **3 wrappers** (Field/Label/HelpText), **3 text inputs**
 (Input/Textarea/NumberInput), **4 choice inputs** (Select/Combobox/Checkbox/Radio), **1
 toggle** (Switch), **1 range** (Slider), **2 specialized** (DateField/FileInput), **1
-error** (ErrorText). Track which exist with `audit-design-system` (M8 — pending).
+error** (ErrorText). Track which exist with `audit-design-system`.
 
 | Primitive | What it owns | Headless wrapping (illustrative — verify per the adopted lib) |
 | --- | --- | --- |

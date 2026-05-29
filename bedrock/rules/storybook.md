@@ -210,7 +210,7 @@ active)`-aware rules — see `theming.md` for the technique.
 ## Hard rules
 
 - ❌ A `shared/ui` component without a `*.stories.tsx` file. No story → not part of the
-  design system → fails `audit-design-system` (M8) when it lands.
+  design system → fails `audit-design-system`.
 - ❌ A story file missing `tags: ['autodocs']`.
 - ❌ An interactive atom without at least one `play` function exercising the happy path.
 - ❌ Per-story `viewport`/`theme`/`direction` configuration — the matrix lives in
