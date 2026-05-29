@@ -277,6 +277,37 @@ never reused **stays in that page**, not in `widgets`. Steiger's `fsd/insignific
   understands slices, segments, `@x`, and same-layer isolation.
 - **dependency-cruiser** (`ci/.dependency-cruiser.cjs`) and **eslint-plugin-boundaries**
   (`ci/eslint-fsd-boundaries.cjs`) enforce layer *direction* + the public-API barrier in lint/CI.
+
+### Steiger rule ledger (verify on every plugin upgrade)
+
+`configs.recommended` from `@feature-sliced/steiger-plugin` ships 17 rules ON by default and
+3 OFF. The kit pins this ledger in `ci/steiger.config.ts` (with one-line descriptions) so a
+plugin upgrade that adds or removes a rule shows up in code review instead of silently
+changing what fails CI. Verified against `@feature-sliced/steiger-plugin@0.5.8`:
+
+| Rule | State | Catches |
+| --- | --- | --- |
+| `fsd/ambiguous-slice-names` | ON | Slice name collides with a `shared/` segment (`theme`, `i18n`, `lib`, `ui`, `api`, `config`, `model`, `types`, `utils`, `hooks`). |
+| `fsd/excessive-slicing` | ON | A sliced layer has >20 ungrouped slices. |
+| `fsd/forbidden-imports` | ON | Lower layers may not import from higher layers (direction enforcement). |
+| `fsd/inconsistent-naming` | ON | Mixed singular/plural slice naming on a layer. |
+| `fsd/insignificant-slice` | ON | Slice referenced 0–1 times — inline candidate. |
+| `fsd/no-layer-public-api` | ON | `index.*` at the *layer* root is forbidden (except `app`). |
+| `fsd/no-processes` | ON | The deprecated `processes` layer. |
+| `fsd/no-public-api-sidestep` | ON | Deep import past a slice's `index.*`. |
+| `fsd/no-reserved-folder-names` | ON | Sub-folders named like segments (`shared/lib/ui`). |
+| `fsd/no-segmentless-slices` | ON | A slice without a `ui/model/api/lib/config` segment. |
+| `fsd/no-segments-on-sliced-layers` | ON | Bare segments directly under a sliced layer (`features/ui/…`). |
+| `fsd/no-ui-in-app` | ON | `ui/` segment inside the `app` layer. |
+| `fsd/public-api` | ON | Every slice/segment must expose an `index.*`. |
+| `fsd/repetitive-naming` | ON | Slice name redundantly repeats the layer (`pages/home-page`). |
+| `fsd/segments-by-purpose` | ON | Essence-named segments (`components`/`hooks`/`utils`/`modals`/`types`/`constants`). |
+| `fsd/shared-lib-grouping` | ON | `shared/lib/` has >15 direct children. |
+| `fsd/typo-in-layer-name` | ON | Layer-folder typo (`shraed`). |
+| `fsd/import-locality` | OFF — opt-in | Self-imports via absolute/aliased paths instead of relative (mirrors the kit's no-barrel-cycles rule — recommend ON for greenfield repos). |
+| `fsd/no-cross-imports` | OFF — opt-in | Stricter same-layer ban than `forbidden-imports` (recommend ON for greenfield). |
+| `fsd/no-higher-level-imports` | OFF — opt-in | Forbids importing from a higher layer regardless of direction (recommended for shared/library packages). |
+
 - The **block-banned-patterns** hook blocks several FSD/Next.js mistakes at write time:
   deep cross-slice imports past a slice's `index.ts`; `@x` segments or `@x/` imports on
   `features/widgets/pages` (entities-only); `'use client'` at the top of `app/**/page.tsx` or
