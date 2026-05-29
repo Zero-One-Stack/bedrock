@@ -211,6 +211,83 @@ collide. The official resolution — **keep Next's router at the repo root; put 
   **providers** and fonts/reset. Because Next layouts are Server Components and providers need React
   Context (client), build an `src/app/providers/` `'use client'` shell and import *that* into the
   server layout. (Steiger `fsd/no-ui-in-app` forbids a `ui` segment in the app layer.)
+
+### Provider composition root (`src/app/providers/`)
+
+The order in which providers wrap `{children}` is **not arbitrary** — wrong order silently breaks
+SSR theming, query hydration, and error-boundary scope. The kit's canonical order, top-down:
+
+```tsx
+// src/app/providers/index.tsx
+'use client';
+import { ReactNode } from 'react';
+import { ErrorBoundary } from '@/shared/lib/error-boundary';        // top-most: catches everything inside
+import { ThemeProvider } from '@/app/providers/theme';              // sets data-theme; reads cookie/system
+import { QueryProvider } from '@/app/providers/query';              // QueryClient + HydrationBoundary
+import { I18nProvider } from '@/app/providers/i18n';                // i18next instance; depends on theme for RTL flips
+import { AuthProvider } from '@/app/providers/auth';                // session context; consumed by features
+import { FeatureFlagsProvider } from '@/app/providers/flags';       // runtime flag context
+
+export function Providers({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary fallback={<GlobalErrorView />}>
+      <ThemeProvider>
+        <QueryProvider>
+          <I18nProvider>
+            <AuthProvider>
+              <FeatureFlagsProvider>
+                {children}
+              </FeatureFlagsProvider>
+            </AuthProvider>
+          </I18nProvider>
+        </QueryProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
+  );
+}
+```
+
+The order encodes real dependencies — outer providers MUST be ready before inner ones run:
+
+| Layer | Why it sits where it does |
+| --- | --- |
+| **ErrorBoundary** (outermost) | If any provider below throws on mount (a misconfigured QueryClient, a broken i18n bundle, an Auth session-restore crash), this is the only thing that can catch it. Anything *outside* the boundary brings down the whole tree. |
+| **ThemeProvider** | Must run before any provider that emits user-visible UI in its fallback/loading state (Query's Suspense boundaries, Auth's redirect screen, etc.). Reads `data-theme` set by the inline head script (`theming.md`). |
+| **QueryProvider** (React Query + HydrationBoundary) | Wraps the cache before Auth/Flags/Features consume it. Hydrates RSC-prefetched queries via `<HydrationBoundary state={dehydratedState}>`. If Auth needs to refresh a token via React Query, Query MUST exist already. |
+| **I18nProvider** | Below Query so translated copy in Query's error/loading fallbacks resolves correctly. Above Auth/Flags because their UI strings are translated. Reads `dir` from the document; flips with theme/locale changes. |
+| **AuthProvider** | Below I18n so its login-redirect screens are translated. Above Flags so a session-scoped flag override works. |
+| **FeatureFlagsProvider** (innermost) | Consumes the user identity from Auth to evaluate per-user variants. Innermost so features can read flags AND auth AND query AND i18n AND theme. |
+
+Rules:
+
+- **One `Providers` shell per repo**, exported from `@/app/providers`, imported by the
+  server `app/layout.tsx`. No second `Providers` somewhere else.
+- **No business hooks in providers** — providers wire context, they don't fetch domain data.
+  Domain reads belong to entity `*.queries.ts`; the providers are pure infrastructure.
+- **Providers that don't apply to the project are dropped, not stubbed.** If the app has no
+  feature flags, the `FeatureFlagsProvider` simply isn't in the tree — don't ship an empty
+  pass-through.
+- **HydrationBoundary lives inside QueryProvider** (or QueryProvider IS the hydration
+  boundary). The root server layout passes the RSC-prefetched `dehydratedState` down as a
+  prop on the client shell; QueryProvider consumes it.
+- **The `'use client'` boundary is exactly the `Providers` file** — no `'use client'` on
+  individual provider files unless they're consumed independently (which they shouldn't be).
+- **Engine-specific providers** (Chakra v3 `ChakraProvider`, MUI `ThemeProvider`,
+  vanilla-extract's runtime, etc.) wrap *above* `ThemeProvider` if they own theme, or *below*
+  it if they just consume tokens. Document the placement in `project-specifics.md`.
+
+A wrong order in practice — and the symptom you'll see:
+
+- `Auth` above `Query` → Auth tries to refresh a token, `useQuery` crashes with "No
+  QueryClient set."
+- `I18n` above `Theme` → i18n initialization reads `dir` before the theme script flips RTL;
+  every first paint is LTR for one frame.
+- `ErrorBoundary` below `Query` → a QueryClient construction error escapes to the global
+  Next.js error boundary instead of the kit's fallback.
+- No `HydrationBoundary` → RSC-prefetched data isn't picked up by client `useQuery`; the
+  client refetches everything, doubling network and showing loading skeletons on a page
+  that the server already rendered with data.
+
 - **Route Handlers / API routes:** webhooks/OAuth/3rd-party → root `app/api/.../route.ts`; their
   logic delegates down into a feature/entity `api` segment. Server Actions for UI-driven mutations
   live in the owning feature's `api/` segment.
