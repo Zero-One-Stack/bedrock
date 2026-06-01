@@ -1,6 +1,7 @@
 {
   "//": "Marketplace root = Claude-Kits/. One unified kit. Install: /plugin marketplace add <git-url> then /plugin install bedrock@zos → /bedrock:kit-init (+ /bedrock:enterprise-init for the governance/CI/ADR layer). 'source' resolves relative to this marketplace root (no '../').",
   "name": "zos",
+  "description": "Zero One Stack — opinionated Claude Code kits for Next.js/React teams. Ships Bedrock: a Feature-Sliced Design engineering constitution with rules, agents, scaffolding skills, enterprise governance, and CI fitness functions.",
   "owner": { "name": "Zero One Stack" },
   "plugins": [
     {
