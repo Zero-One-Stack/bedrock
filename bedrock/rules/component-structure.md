@@ -31,7 +31,40 @@ a "shared" component that only makes sense for one domain belongs in that **enti
 used on exactly one page that's never reused **stays in that page** (don't promote it to a widget —
 the insignificant-slice trap, `feature-sliced-design.md`).
 
-## The `shared/ui` atomic sub-convention (optional, FSD-legal)
+## Atomic and FSD are orthogonal axes — shape vs. boundaries
+
+> **The kit's standing decision.** Atomic Design and FSD are **not** competing classifications;
+> they answer different questions about the same component, and every component has a true answer
+> on *both*:
+> - **Atomic = shape** (atom → molecule → organism → template): how big/composable is this UI piece?
+> - **FSD = boundaries** (the layer/slice it lives in): what does it mean to the business, who imports it?
+>
+> They never collide because **FSD governs the boundaries *between* slices, while Atomic governs the
+> composition *inside* a slice's `ui/`.** So `<EmployeeCard>` is an **organism** (shape) *and* lives
+> in `entities/employee/ui/` (contract) — say both. Don't try to map one axis onto the other (the
+> "everything is a widget" trap); name the shape and name the boundary separately.
+
+**Where atomic levels tend to land in FSD** (a tendency, not a law — atoms/molecules carry no
+business meaning so they sink to `shared`; organisms are where meaning enters, so they rise up):
+
+| Atomic level (shape) | Usually lives in (boundary) | Why |
+| --- | --- | --- |
+| **Atoms** (`Button`, `Input`, `Icon`) | `shared/ui` | No business meaning, reused everywhere. |
+| **Molecules** (`Field`, `SearchBar`) | `shared/ui`, or a slice's local `ui/` | Generic composite → shared; slice-specific → that slice. |
+| **Organisms** (`EmployeeCard`, `FileGrievanceForm`) | `entities/*/ui` or `features/*/ui` | Business meaning enters here. |
+| **Templates** (page-block layouts) | `widgets` or `pages` | Composing organisms *across* slices = the gluing act. |
+
+**Widget vs. organism — the test that ends the debate.** Ask: *"Does this block reach across slices
+to assemble several entities/features into a deliverable chunk of a page?"*
+- **Yes → it's a `widget`** (e.g. a `Header` gluing logo + nav + user-menu + cart-preview). It's an
+  organism *by shape*, a widget *by contract* — both true.
+- **No, one cohesive thing → it lives in the slice that owns it** (`EmployeeCard` → `entities/employee/ui`;
+  `FileGrievanceForm` → `features/file-grievance/ui`). Organism by shape, **not** a widget.
+
+The deciding factor is **boundary-crossing, not size.** A widget imports from multiple
+entities/features and is imported only by pages.
+
+### The `shared/ui` atomic sub-convention (optional, FSD-legal)
 
 `shared` has **segments, not slices**, so you may *group* the design system inside `shared/ui` by
 atomic level without violating FSD:
@@ -43,35 +76,37 @@ shared/ui/
 └── organisms/    larger self-contained presentational sections (data table, nav bar)
 ```
 
-This is purely a `shared/ui` *folder grouping* — it is **not** a set of FSD layers, and atomic level
-imposes **no extra import direction beyond FSD's** (everything here is in `shared`, the bottom layer).
-A flat `shared/ui/<component>/` (no atomic folders) is equally valid; pick one per repo and record it
-in `project-specifics.md`. Business-bearing components never live here — those go in
-`entities`/`features`/`widgets`.
+This `atoms/molecules/organisms/` folder split is a `shared/ui` *grouping* — it is **not** a set of
+FSD layers, and atomic level imposes **no extra import direction beyond FSD's** (everything here is in
+`shared`, the bottom layer). A flat `shared/ui/<component>/` (no atomic folders) is equally valid;
+pick one per repo and record it in `project-specifics.md`. Note this folder split only names the
+*business-agnostic* atoms/molecules/organisms that live in `shared`; business-bearing organisms still
+exist — they live in `entities`/`features`/`widgets` per the orthogonal-axes mapping above.
 
-> **Why keep atomic at all?** It's the gap-filler FSD endorses: atomic design organizes the
-> *presentational primitives*, FSD organizes the *business layers above them*. Storybook titles below
-> still mirror this grouping.
-
-### Heuristics — atom / molecule / organism
+### Heuristics — atom / molecule / organism (shape only)
 
 Atomic theory is famously slippery; in practice the kit uses these heuristics. They're not
 hard gates — a reviewer makes the call — but they end "is `<SearchBar>` an atom or a
-molecule?" arguments without a vote.
+molecule?" arguments without a vote. **These decide *shape* (the atomic axis) only; the boundary
+axis — which slice the component lives in — is decided separately by the table above.** The
+heuristics double as the rule for the `shared/ui` folder split, but a component being an organism
+by shape says nothing about whether it lives in `shared`, `entities`, or `features`.
 
 | Level | "It IS this if…" | "It is NOT this if…" |
 | --- | --- | --- |
 | **Atom** | A single semantic HTML element + its variants (`<Button>`, `<Input>`, `<Icon>`, `<Badge>`, `<Spinner>`, `<Avatar>`, `<Label>`, `<Kbd>`). Renders no other named subcomponent of its own. Imports no other atom by name. | It imports another atom (`<Button>` rendering an `<Icon>` is a `molecule`); it owns local state across multiple parts (`<Combobox>` with an open/closed state machine and 3 subcomponents is an `organism`). |
 | **Molecule** | A small composition of **≤3 atoms** with **one purpose** (a `Field` = `Label + Input + ErrorText`; a `SearchBar` = `Icon + Input + IconButton`). May own minimal local state for its single purpose (the field's `id` wiring, the search bar's debounced query). | It composes **more than 3 atoms**, owns layout zones, or coordinates state across multiple subcomponents → `organism`. It needs no atoms, only one HTML element → `atom`. |
-| **Organism** | A larger self-contained block: composes **molecules** (and/or atoms), owns local state across multiple subcomponents, defines named layout regions (header / body / footer slot). Examples: `DataTable`, `NavBar`, `Dialog`, `Tabs`, `Menu`, `Accordion`. **Still presentational** — no domain reads, no Server Actions. | It fetches data, calls a mutation, or carries business terminology (an `EmployeeCard` is an **entity** view, not an organism — `feature-sliced-design.md` § "Choosing the right layer"). |
+| **Organism** | A larger self-contained block: composes **molecules** (and/or atoms), owns local state across multiple subcomponents, defines named layout regions (header / body / footer slot). Examples: `DataTable`, `NavBar`, `Dialog`, `Tabs`, `Menu`, `Accordion`. A business-bearing block like `EmployeeCard` or `FileGrievanceForm` is **also an organism by shape** — it just lives in `entities`/`features` by boundary, not `shared`. | It's only a molecule/atom by composition. Note: touching domain data does **not** demote it from "organism" — it's still an organism, it just moves *out of `shared/ui`* into the slice that owns its meaning (next column / §3 below). |
 
 The 30-second test (apply in this order):
 
 1. **Does it import another atom?** → at least a molecule.
 2. **Does it own state across >3 atoms or define named subcomponent slots?** → organism.
 3. **Does it touch domain data (entity reads, feature actions, business terms)?** → it's
-   not in `shared/ui` at all — promote it to `entities/<x>/ui/`, `features/<x>/ui/`, or
-   `widgets/<x>/ui/`.
+   not in `shared/ui` at all — it moves to `entities/<x>/ui/`, `features/<x>/ui/`, or
+   `widgets/<x>/ui/`. (This is the *boundary* axis; it doesn't change the shape — a business
+   organism is still an organism. If it reaches *across* slices to assemble a page block, it's a
+   `widget`; see the widget-vs-organism test above.)
 4. **None of the above + single semantic element?** → atom.
 
 Borderline calls (and how the kit resolves them):
@@ -87,9 +122,10 @@ Borderline calls (and how the kit resolves them):
 - **DataTable** — **organism**. Even if it has only one "named" subcomponent (`Column`), it
   owns sort/filter/pagination state across multiple atoms.
 - **A presentational `<UserAvatar>` showing a user's photo** — if it's truly business-
-  agnostic (takes `src` and `alt` as props), it's an atom (avatar). If it accepts a `User`
-  domain object and knows how to derive the avatar from it, it's an **entity view**
-  (`entities/user/ui/UserAvatar.tsx`), not a shared atom.
+  agnostic (takes `src` and `alt` as props), it's an atom in `shared/ui`. If it accepts a `User`
+  domain object and knows how to derive the avatar from it, it moves by **boundary** to
+  `entities/user/ui/UserAvatar.tsx` — its shape is unchanged (still atom-sized), it just isn't a
+  *shared* atom anymore. Same shape, different slice.
 
 Migration notes:
 

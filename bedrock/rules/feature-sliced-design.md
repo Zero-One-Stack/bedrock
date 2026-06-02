@@ -19,9 +19,17 @@ technical-purpose segments inside them. The payoff is **isolation** (rewrite a s
 nothing outside breaks, because the public API is the only contract) and **locatability** (the folder
 path tells you the scope and blast radius of any change).
 
-> **Pairs with, doesn't replace.** Atomic design still applies *inside* `shared/ui` as an optional
-> grouping (`component-structure.md`); FSD governs the layers *above* `shared`, which is the gap
-> atomic design never addressed.
+> **Pairs with, doesn't replace — they're orthogonal axes.** FSD and Atomic Design answer two
+> different questions about the same component, so a component has a true answer on *both* at once:
+> - **Atomic = shape.** How big/composable is this piece of UI? (atom → molecule → organism → template)
+> - **FSD = boundaries.** What does it mean to the business, and who may import it? (the layers above).
+>
+> They never collide because they operate at different scopes: **FSD governs the boundaries
+> *between* slices; Atomic governs the composition *inside* a slice's `ui/`.** Atoms/molecules carry
+> no business meaning so they sink to `shared`; organisms are where meaning enters, so they rise into
+> `entities`/`features`; composing organisms across slices into a page-ready block *is* the `widgets`
+> job. `<EmployeeCard>` is an *organism* (shape) **and** lives in `entities/employee` (contract) —
+> both labels true. See `component-structure.md` for the full mapping and the widget-vs-organism test.
 
 ## The six layers (high → low — most app-specific to most generic)
 

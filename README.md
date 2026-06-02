@@ -38,9 +38,10 @@ agent writing a lot of the code — Bedrock is for you.
 ## What makes it different?
 
 - **One fixed architecture.** Bedrock standardizes on [Feature-Sliced Design](https://feature-sliced.design/)
-  (FSD) **paired with an atomic design system**: a small set of layers under `src/` with
-  strict rules about what can import what, and atomic-design component tiers (atoms →
-  molecules → organisms) inside the shared UI kit. No more arguing about folder structure.
+  (FSD) **paired with an atomic design system, as two orthogonal axes**: FSD layers under `src/`
+  decide *boundaries* (what can import what), while atomic tiers (atoms → molecules → organisms)
+  decide a component's *shape*. A component has both — `<EmployeeCard>` is an organism by shape and
+  an entity by boundary. No more arguing about folder structure, or whether something's "a widget."
 - **Enforced, not suggested.** Hooks block banned patterns, linters catch bad imports, and
   CI gates fail the build. The rules hold even when an agent writes 40 files at once.
 - **Built for AI agents.** Ships agents, skills, and slash commands (`/architect`,
