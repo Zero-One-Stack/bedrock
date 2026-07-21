@@ -155,8 +155,30 @@ themselves. The reviewer changes the toolbar; the snapshot service captures all 
 Mandatory addon. Configuration in `.storybook/main.ts`:
 
 ```ts
+// Storybook 8/9 shape — verify against the INSTALLED major before copying (see below).
 addons: ['@storybook/addon-essentials', '@storybook/addon-a11y', '@storybook/addon-interactions'],
 ```
+
+> ⚠️ **Version currency — check the installed major, don't copy this.** This rule and the bundled
+> `docs/external-references/storybook-9.md` were written against Storybook 9, and the addon
+> surface has since changed. In **Storybook 10** the `addon-essentials` bundle was **removed** —
+> docs are now `@storybook/addon-docs`, and the former essentials pieces (controls, viewport,
+> backgrounds) are built in:
+>
+> ```ts
+> // Storybook 10
+> addons: ['@storybook/addon-docs', '@storybook/addon-a11y'],
+> ```
+>
+> Framework packages also moved: `@storybook/nextjs` (webpack) and `@storybook/nextjs-vite`
+> (vite) are the Next.js options, and `Meta`/`StoryObj` are imported from the **framework**
+> package (`@storybook/nextjs`), not `@storybook/react`. Confirm the current shape from the
+> installed version's docs — this is exactly the Step 0 "verify, not recall" gate.
+>
+> **Theme decorator:** the examples below toggle `data-theme`. If the project's provider uses
+> `attribute="class"` (the `next-themes` default in many repos), the decorator must toggle
+> `class="dark"` instead — otherwise every dark-mode story silently renders light and the
+> stories lie about dark mode. Match the app's mechanism (`theming.md`), not the example.
 
 The kit's parameter `a11y: { test: 'error' }` makes axe violations **fail the story** in the
 test runner (not just warn in the addon panel). For the rare legitimate violation (e.g. a
