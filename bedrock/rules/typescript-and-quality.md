@@ -45,6 +45,23 @@ RTL/logical CSS, `lang`/`dir` — live in **`i18n.md`**. Read it before touching
   components use React Query hooks.
 - Use `next/image`, `next/link`, `next/font`. No raw `<img>` for app imagery.
 - Keep client bundles lean — push logic to server components / hooks where possible.
+- **`params`, `searchParams`, `cookies()`, `headers()`, `draftMode()` are async** on Next 15+ —
+  always `await`. On Next 16, `middleware.ts` is renamed **`proxy.ts`**; shipping both breaks
+  the build.
+- **Mutations, Server Action security, and the React 19 client model** (`useActionState`,
+  `useOptimistic`, `useFormStatus`, `use()`, `ref`-as-prop) have their own rule —
+  **`react-19-and-server-actions.md`**. Read it before writing any action or form.
+
+## TypeScript version-specific
+
+- **Don't write an API from memory.** Verify the installed major (`package.json`) and confirm
+  current syntax — library APIs move between majors (this is the Step 0 Recon gate).
+- Prefer **`satisfies`** over a type annotation when you want inference kept *and* the shape
+  checked: `const config = {...} satisfies Config` keeps literal types that `: Config` would widen.
+- Use **`const` type parameters** (`<const T>`) when a generic should infer literals rather than
+  widen to `string`/`string[]`.
+- Mark read-only inputs `readonly` (arrays and props) — it documents intent and blocks
+  accidental mutation of shared data.
 
 ## Logging
 

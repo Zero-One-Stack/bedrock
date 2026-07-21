@@ -105,6 +105,7 @@ The "why" and the compliant patterns for each ban are in the rule files below.
 | Any user-facing copy, locales, RTL, pluralization    | `rules/i18n.md`                     |
 | Error boundaries, error tracking, analytics, logging | `rules/observability.md`            |
 | TypeScript, Next.js App Router, logging, docs tone   | `rules/typescript-and-quality.md`   |
+| Writing a Server Action / mutation; a form's pending+error state; `useActionState`/`useOptimistic`/`use()`/ref-as-prop; the Data Access Layer | `rules/react-19-and-server-actions.md` |
 | CI pipelines, pre-commit hooks, merge gates          | `rules/ci.md`                       |
 | Releasing/deploying; flags, rollback; the server (Route Handlers/Server Actions) surface | `rules/release-and-deploy.md` |
 | Structuring a monorepo / shell + FSD-slice libraries | `rules/monorepo-architecture.md`    |
