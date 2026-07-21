@@ -24,6 +24,7 @@ the repo's package manager. Record what you ran.
 | e2e           | `e2e`, `test:e2e`, `playwright test`                            |
 | token build   | `tokens:build`, `build:tokens`, `tokens`, Style Dictionary cfg  |
 | cycles        | `import/no-cycle` (in lint), `madge --circular`, Nx boundaries   |
+| **production build** | `build`, `next build` — **the only gate that catches client/server boundary leaks** |
 
 Prefer the repo's task runner (Nx: `nx run <project>:<target>` / `nx affected`; pnpm/npm scripts).
 
@@ -31,6 +32,24 @@ Prefer the repo's task runner (Nx: `nx run <project>:<target>` / `nx affected`; 
 
 Run the repo's **typecheck**. Zero errors. (Catches bad imports, wrong library API for the
 installed version, missing types from a renamed file.)
+
+### 1b. …and actually builds
+
+**Typecheck is not the build.** Run the repo's **production build** whenever the change touches a
+barrel/`index.ts`, a provider, a `'use client'` file, an entity's public API, or anything under
+`app/` — and always before declaring a structural change done.
+
+It is the **only** check that catches a `server-only` module reaching a client bundle through a
+barrel re-export. That failure has occurred on a tree where typecheck, ESLint, Steiger,
+dependency-cruiser and a full green test suite all passed simultaneously:
+
+```
+You're importing a module that depends on "server-only".
+```
+
+The fix is the `index.ts` + `client.ts` split (`rules/services-and-data.md`), not a deep import.
+If the build is genuinely too slow to run every time, say so and mark the verdict provisional —
+don't silently skip it and imply it passed.
 
 ## 2. Tokens resolve (the silent failure)
 

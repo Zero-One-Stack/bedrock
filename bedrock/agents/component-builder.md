@@ -40,6 +40,12 @@ latest) + TypeScript-strict codebase governed by a fixed engineering constitutio
   on entities); **import a slice via its `index.ts`, never a deep path**; **no circular
   dependencies** — including barrel/`index.ts` re-export loops. Import leaf modules directly when a
   barrel would close a cycle (see `component-structure.md`).
+- **Building a `'use client'` component that consumes an entity?** Check whether that slice ships
+  a **`client.ts`** barrel and import from it (`@/entities/x/client`). A slice's `index.ts` may
+  re-export `server-only` queries as runtime values; importing it from client code compiles and
+  lints clean, then **fails `pnpm build`**. If the slice mixes runtimes and has no `client.ts`,
+  add one rather than deep-importing or copying the constant (`services-and-data.md` § "The slice
+  barrel is itself a leak"). Type-only imports are always safe.
 - No hardcoded user-facing strings.
 - **Accessible by construction (WCAG 2.2 AA):** semantic element first, keyboard-operable, visible
   focus, errors associated + announced, targets ≥ 44px. Add an axe assertion using the repo's

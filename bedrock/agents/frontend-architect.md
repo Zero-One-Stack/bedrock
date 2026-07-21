@@ -47,6 +47,10 @@ Output these sections. Keep it tight — it's a routing map, not an essay.
 ### 2. Data & state plan
 - For each piece of data: a **server read** (→ an **entity** `api/` query — server-only `getX`/`listX`
   in `<model>.queries.ts` for RSC + client `useX` in the sibling `<model>.hooks.ts` for React Query;
+- **Plan the barrel split up front** for any entity whose reads are server-only AND whose UI/types
+  client components consume: `index.ts` (server superset) + `client.ts` (pure surface). Deciding
+  this at plan time costs nothing; discovering it at `pnpm build` costs a refactor of every
+  consumer (`services-and-data.md`).
   name the entity and both files) vs. a **server write** (→ a **feature** `api/` Server Action that
   invalidates — name the feature and action) vs. **client/UI state** (`useState`/`useReducer`/
   Context) vs. **form state** (RHF + Zod in the feature `model/`). Cite the state-boundary table in

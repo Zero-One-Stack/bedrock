@@ -285,6 +285,72 @@ export async function fileGrievance(input: unknown) {
 }
 ```
 
+### The slice barrel is itself a leak — split it (`index.ts` + `client.ts`)
+
+`import 'server-only'` protects the *module*. It does **not** protect the **barrel that
+re-exports it**. The moment a slice's `index.ts` re-exports a query as a **runtime value**,
+every client consumer of that barrel pulls the server module in — and the Next build fails:
+
+```
+You're importing a module that depends on "server-only".
+```
+
+This is the failure mode the queries/hooks split above does **not** cover, and it is easy to
+miss because **typecheck, ESLint, Steiger and dependency-cruiser all pass**. Only `pnpm build`
+catches it. It surfaces late — often only when the first client component imports the slice.
+
+**The rule:** a slice that exposes *both* runtimes publishes **two root barrels**.
+
+```
+entities/employee/
+├── index.ts     # SERVER surface: re-exports client.ts + the server-only queries
+├── client.ts    # CLIENT-SAFE surface: schemas, types, plain data, read-only UI, hooks
+├── model/       # pure — no server imports
+├── ui/          # read-only views — pure
+└── api/
+    ├── employee.queries.ts   # `import 'server-only'` — reachable ONLY from index.ts
+    └── employee.hooks.ts     # `'use client'` — safe from client.ts
+```
+
+```ts
+// entities/employee/client.ts — nothing here reaches a server-only module.
+export { EmployeeSchema, type Employee } from './model/employee';
+export { useEmployees, employeeKeys } from './api/employee.hooks';
+export { EmployeeCard } from './ui/employee-card';
+```
+
+```ts
+// entities/employee/index.ts — the server surface is a SUPERSET, so server code
+// keeps a single import. List the client re-exports explicitly; `export *` is banned.
+export { EmployeeSchema, type Employee, useEmployees, employeeKeys, EmployeeCard } from './client';
+export { getEmployee, listEmployees } from './api/employee.queries';   // server-only
+```
+
+Consumers:
+
+| Caller | Imports |
+| --- | --- |
+| Server Component, route handler, Server Action | `@/entities/employee` |
+| `'use client'` component (runtime values) | `@/entities/employee/client` |
+| **Types only, from anywhere** | either — types are erased, so they never leak |
+
+**Do NOT solve this by deep-importing** (`@/entities/employee/model/employee`) or by inventing
+per-segment barrels (`entities/employee/ui/index.ts`). Both punch holes in the public-API
+barrier for every consumer, and the lint exceptions needed to permit them are far broader than
+the problem. `client.ts` is a **slice-root** file, so it adds exactly one public entry point.
+
+**Do NOT solve it by duplicating the constant** into a "client-safe mirror" either. That is the
+tempting local fix and it is a trap: you now own two copies and a test to keep them in sync,
+which is strictly worse than splitting the barrel once.
+
+If a slice has no server-only modules (a pure-model entity), it needs **only `index.ts`** — don't
+add an empty `client.ts` for symmetry.
+
+**Enforcement.** Lint can't see through a re-export chain, so pin the invariant with a test that
+reads `client.ts` and asserts none of its re-export targets contains `import 'server-only'`
+(fails instantly, instead of at the next `pnpm build`). And configure the FSD linters to accept
+`<slice>/client.ts` as a public API — scoped to that exact filename, never to a whole layer.
+
 ### `api/<model>.mock.ts` + `api/<model>.msw.ts`
 
 ```ts
@@ -343,6 +409,12 @@ export function FileGrievanceForm() {
 - ❌ An `entities/<x>/api/*.queries.ts` **without `import 'server-only';`** — silent client-bundle leak. Layered: PreToolUse hook (Write), ESLint (existing code), reviewer. See `governance.md`.
 - ❌ A `features/<x>/api/*.action.ts` **without `'use server';`** at the top — Next.js may expose it as a client RPC. Same layered enforcement.
 - ❌ Mixing `useQuery` (client) and `import 'server-only'` (server) in the **same** file — split into `<model>.queries.ts` (server) and `<model>.hooks.ts` (client).
+- ❌ A slice barrel (`index.ts`) that re-exports a `server-only` module as a **runtime value**
+  while client code imports that barrel — the build fails and **no linter catches it**. Split
+  into `index.ts` (server superset) + `client.ts` (pure surface).
+- ❌ Working around that leak by **deep-importing** (`@/entities/x/model/y`), by adding
+  **per-segment barrels** (`entities/x/ui/index.ts`), or by **duplicating the constant** into a
+  hand-synced "client-safe mirror". All three trade one public-API hole for another.
 - ❌ Passing **class instances**, **functions**, or **cyclic references** across the RSC → Client boundary. Return Zod-parsed POJOs from entity queries; Server Actions can cross as opaque references (Next.js serializes them as tokens). See "RSC ↔ Client serialization" above.
 - ✅ Reads split: server-only `getX`/`listX` in `<model>.queries.ts` (RSC) + client `useX` in `<model>.hooks.ts` (React Query); writes in feature `api/` (Server Action) that invalidate.
 - ✅ Stable, namespaced query keys (`xKeys` object); one Zod schema per shape; derive types via `z.infer`.

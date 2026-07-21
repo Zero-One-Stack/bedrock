@@ -313,6 +313,14 @@ import { EmployeeCard } from '@/entities/employee';
 - **No barrel re-export loops** — a slice's own files import siblings by leaf path, never the slice's
   own `index.ts`. (Cycle mechanics in `component-structure.md`.)
 - **No layer-level `index.ts`** — the public API is per-slice, not per-layer (Steiger `fsd/no-layer-public-api`).
+- **The ONE sanctioned second entry point: `<slice>/client.ts`.** A slice whose `index.ts`
+  re-exports `server-only` modules as runtime values cannot be imported from a `'use client'`
+  component — the Next build fails, and no linter warns first. Such a slice publishes a second
+  **root** barrel, `client.ts`, holding only the pure surface; `index.ts` re-exports it so server
+  code keeps one import. This is a public API, not a sidestep. Details and the enforcement test:
+  `services-and-data.md` § "The slice barrel is itself a leak".
+  **It is not a licence for deep imports** — `client.ts` is slice-root, so it adds exactly one
+  entry point. `entities/x/ui/index.ts`, `entities/x/model/thing` and friends remain sidesteps.
 - **Use `export type { … }` for type-only exports.** A bare `export { EmployeeSchema, type Employee }`
   is fine; a `export { type Employee }` is fine; an `export { Employee }` for a type-only symbol
   pulls runtime cost into the consumer's bundle even though the symbol vanishes at compile time

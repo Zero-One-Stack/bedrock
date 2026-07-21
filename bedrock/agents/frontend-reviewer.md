@@ -84,6 +84,14 @@ re-declared per folder**.
   feature `api/` Server Action that starts with `'use server';` and invalidates. No `fetch` in
   components; Zod validation at the api boundary; stable namespaced query keys. Forms use RHF + Zod
   inside the feature. (The PreToolUse hook rejects writes missing any of these directives.)
+- ❌ **A slice barrel that re-exports a `server-only` module as a runtime value, imported by
+  client code.** `import 'server-only'` guards the module, not the barrel — so `index.ts`
+  re-exporting a query leaks it to every client consumer, and the build fails with *"You're
+  importing a module that depends on 'server-only'"*. **Nothing else catches this**: typecheck,
+  ESLint, Steiger and dependency-cruiser all pass. Check every `'use client'` file's slice-barrel
+  imports; type-only imports are safe (erased). The fix is the `index.ts` + `client.ts` split
+  (`services-and-data.md`), NOT deep imports, per-segment barrels, or a duplicated "client-safe
+  mirror" — flag all three as the wrong fix.
 
 **Security (`security.md`)**
 - ❌ Un-sanitized raw-HTML injection (React's raw-HTML prop fed user/API/URL data); secrets in
@@ -134,7 +142,14 @@ repo's real scripts: typecheck, **FSD check (`steiger ./src`) + layer boundaries
 token build + unresolved-`var(--…)` grep, cycle check (`madge`/`import/no-cycle`/Nx), lint/format,
 and the test suites (unit + E2E). Static review
 finds rule violations; this proves the change actually compiles, resolves, and passes. **A
-failing verify-build is a Blocker** regardless of how clean the code reads. If you can't run it
+failing verify-build is a Blocker** regardless of how clean the code reads.
+
+**Run the production build too (`pnpm build` / `next build`), not just typecheck.** It is the
+only gate that catches client/server boundary violations — a `server-only` module reaching a
+client bundle through a barrel re-export. Typecheck, lint, Steiger, dependency-cruiser and a
+full green test suite have all passed simultaneously on a tree whose build failed for exactly
+this reason. If the change touches any barrel, provider, or `'use client'` file, treat the build
+as mandatory evidence. If you can't run it
 (no access/sandbox), say so explicitly and mark the verdict provisional — don't imply it passed.
 
 ## Output
