@@ -50,7 +50,7 @@ type and on commit, Steiger/dependency-cruiser/OPA in CI, and the `frontend-revi
 on every diff. The layers are designed to backstop each other — **no single layer is a
 guarantee**, and writing prose as if it were is overclaiming.
 
-The kit ships `eslint-plugin-bedrock` at `tools/eslint-plugin-bedrock/` covering the six
+The kit ships `eslint-plugin-bedrock` at `tools/eslint-plugin-bedrock/` covering the seven
 rules the ecosystem doesn't have a great match for. Everything else composes from the
 ecosystem — and the kit now ships that composition as a working flat config at
 **`ci/eslint.config.recommended.js`** (`eslint-plugin-bedrock` + `jsx-a11y` +
@@ -80,6 +80,7 @@ at this layer.
 | Banned styling engine (the kit's old ban — now removed) | — | — | — | — (engine choice is now project-level, `styling-engine.md`) |
 | Missing test for changed component | — | — | ◐ (CI runs the test script; the coverage threshold must be set in the repo's jest/vitest config — the kit ships no threshold) | ✓ |
 | Storybook story + a11y for new component | — | — | ◐ (`/bedrock:audit-design-system --ci` exists but is NOT wired into the shipped workflow — run it manually or add a step) | ✓ |
+| Design-system component as a bare file / missing colocated test or story | — | ✓ `bedrock/component-folder-contract` | ◐ (`/bedrock:audit-design-system` sweep — not wired into the shipped workflow) | ✓ |
 | `any` / unchecked `as` cast | — | ✓ (`@typescript-eslint/no-explicit-any` + `no-unsafe-*`, in `ci/eslint.config.recommended.js`) | — | ✓ |
 | Inaccessible UI (`<div onClick>`, no focus ring, color-only) | — | ✓ (`jsx-a11y`, in `ci/eslint.config.recommended.js`) | ◐ (Lighthouse a11y budget catches some) | ✓ |
 | Raw `<img>` / third-party font `<link>` | — | ✓ (`@next/next/no-img-element`, `no-page-custom-font`) | — | ✓ |

@@ -64,10 +64,11 @@ to assemble several entities/features into a deliverable chunk of a page?"*
 The deciding factor is **boundary-crossing, not size.** A widget imports from multiple
 entities/features and is imported only by pages.
 
-### The `shared/ui` atomic sub-convention (optional, FSD-legal)
+### The `shared/ui` atomic structure (the DEFAULT — see `design-system-structure.md`)
 
-`shared` has **segments, not slices**, so you may *group* the design system inside `shared/ui` by
-atomic level without violating FSD:
+`shared` has **segments, not slices**, so the design system inside `shared/ui` is grouped by
+atomic level without violating FSD. **This is the kit's default layout — apply it without
+asking:**
 
 ```
 shared/ui/
@@ -76,12 +77,22 @@ shared/ui/
 └── organisms/    larger self-contained presentational sections (data table, nav bar)
 ```
 
+Every component is a **folder** under its atomic level, owning its own test and story — the
+full contract (and the test-runner glob it depends on) is in
+**`rules/design-system-structure.md`**. That file is authoritative for design-system layout;
+this section is the FSD-side summary.
+
 This `atoms/molecules/organisms/` folder split is a `shared/ui` *grouping* — it is **not** a set of
 FSD layers, and atomic level imposes **no extra import direction beyond FSD's** (everything here is in
-`shared`, the bottom layer). A flat `shared/ui/<component>/` (no atomic folders) is equally valid;
-pick one per repo and record it in `project-specifics.md`. Note this folder split only names the
-*business-agnostic* atoms/molecules/organisms that live in `shared`; business-bearing organisms still
-exist — they live in `entities`/`features`/`widgets` per the orthogonal-axes mapping above.
+`shared`, the bottom layer). Note this split only names the *business-agnostic*
+atoms/molecules/organisms that live in `shared`; business-bearing organisms still exist — they
+live in `entities`/`features`/`widgets` per the orthogonal-axes mapping above.
+
+> **Deviating from the atomic split** (e.g. a flat `shared/ui/<component>/`) is allowed only as
+> a dated entry in `project-specifics.md`'s *Approved overrides*. It is **not** a free per-repo
+> choice — an agent must not silently pick the flat layout because a repo happens to look flat.
+> If a repo is flat today, that's a **migration target**, not the new convention
+> (`/bedrock:migrate-to-kit`).
 
 ### Heuristics — atom / molecule / organism (shape only)
 

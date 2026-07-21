@@ -30,6 +30,12 @@ export default function makeRecommended(plugin) {
       'bedrock/require-server-only-on-queries': 'error',
       'bedrock/no-use-client-at-page-top': 'error',
       'bedrock/events-only-from-shared': 'error',
+      // Reads the component's directory to check for a sibling test/story, so it is
+      // I/O-bound (results are memoized per directory). Repos adopting the folder
+      // contract on an existing flat design system should start this at 'warn' and
+      // promote to 'error' once the backlog is paid down — see
+      // design-system-structure.md § "Adopting this in a repo that is flat today".
+      'bedrock/component-folder-contract': 'error',
     },
   };
 }

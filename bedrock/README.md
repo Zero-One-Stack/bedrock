@@ -17,8 +17,9 @@ Distilled from the file-per-concern structure proven in the `digital-health` mon
 **engine-agnostic on styling** (CSS Modules, Tailwind, Chakra v3, vanilla-extract, Panda CSS —
 pick one per repo; 3-tier DTCG design tokens recommended for theming durability), **no Effector**
 (architectural rule — server state goes through React Query), **Feature-Sliced Design** with
-Steiger-enforced boundaries (atomic design kept as an optional `shared/ui` sub-convention), and
-a **monorepo decision guide** (modular monolith → Multi-Zones → Module Federation).
+Steiger-enforced boundaries (atomic design is the **default** `shared/ui` grouping — every
+component a folder owning its colocated test + story), and a **monorepo decision guide**
+(modular monolith → Multi-Zones → Module Federation).
 
 ## Design principle: thin index, modular depth
 
@@ -34,6 +35,7 @@ bedrock/                      # the plugin root
 │   ├── README.md                  # rules + skills + agents index, two-tier model, authoring convention
 │   ├── feature-sliced-design.md   # THE ARCHITECTURE: FSD layers/slices/segments, import rule, @x, public API, Next.js layout
 │   ├── architecture.md            # Phase 1: decompose request → FSD layers → data → build order
+│   ├── design-system-structure.md # shared/ui layout: atomic grouping (default), component folder w/ colocated test+story, runner glob
 │   ├── component-structure.md     # file-per-concern contract within FSD ui/ segment; shared/ui atomic sub-convention; no cycles
 │   ├── styling-engine.md          # engine-agnostic — project picks one
 │   ├── styling-and-tokens.md      # recommended pattern (any engine): 3-tier DTCG tokens
@@ -168,9 +170,9 @@ Then in Claude Code:
 The kit ships the governance layer in-box — apply it with `/bedrock:enterprise-init`:
 
 - **Layered enforcement, not just docs:** deterministic `hooks/` block banned patterns at
-  write time; **`tools/eslint-plugin-bedrock/`** (6 rules covering deep slice imports,
+  write time; **`tools/eslint-plugin-bedrock/`** (7 rules covering deep slice imports,
   cross-feature `@x`, primitive token use in components, missing `server-only` on entity
-  queries, `'use client'` at a page top, event emitters outside `shared/lib/events`) plus
+  queries, 'use client' at a page top, event emitters outside `shared/lib/events`, and the design-system component-folder contract) plus
   **`ci/eslint.config.recommended.js`** (the ecosystem half — `jsx-a11y`,
   `typescript-eslint`, `import/no-cycle`, `@next/next`, no `export *`) backstops existing
   code; CI **fitness functions**

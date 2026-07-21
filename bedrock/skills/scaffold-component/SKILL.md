@@ -18,7 +18,11 @@ verifying it exists.
 1. **Name** — kebab-case folder/files; PascalCase export.
 2. **Placement** — pick the FSD layer by what the component *is*, then put it in that slice's
    **`ui/` segment** (`feature-sliced-design.md`): generic+reusable+business-agnostic →
-   `shared/ui/<component>/` (atomic sub-convention `shared/ui/atoms|molecules|organisms/` optional);
+   **`shared/ui/<atoms|molecules|organisms>/<component>/`** — the atomic level is the
+   **default**, not optional (`design-system-structure.md`); choose the level with the
+   heuristics in `component-structure.md` (atom = one element; molecule = ≤3 atoms, one
+   purpose; organism = composes molecules / owns cross-part state). Ambiguous → pick the
+   **lower** level and promote later;
    read-only view of one domain model (no actions/fetch) → `entities/<model>/ui/<component>/`;
    the UI of one state-changing action (`'use client'`) → `features/<action>/ui/<component>/`;
    a composed self-contained block → `widgets/<block>/ui/<component>/`; a route's whole screen →
@@ -51,6 +55,19 @@ Then add the export to the **slice's root `index.ts`** — its public API (publi
 `export *` of internals, which is also how barrel import-cycles form). Outsiders import the slice
 via that `index.ts`, never a deep `ui/` path. If a needed value has no token, stop and use
 `/add-design-token` first.
+
+> ### ⚠ Confirm the test runner actually sees a colocated test
+>
+> Before reporting the component done, check that the repo's test glob **includes the
+> component tree**. A runner bound to a separate suite directory — e.g.
+> `"test:unit": "tsx --test tests/unit/*.test.ts"` — will **never run** the
+> `component-name.test.tsx` you just wrote, and the suite still reports green. A test that
+> passes by not existing is worse than no test.
+>
+> Read the runner config (`vitest.config.*` / `jest.config.*` / the `test` script), and if
+> `src/**/*.{test,spec}.{ts,tsx}` isn't covered, **say so and fix the glob in this change**
+> (see `design-system-structure.md` §3). Verify by running the suite and confirming the new
+> test appears in the output — don't infer it from a green exit code.
 
 ## Done when
 

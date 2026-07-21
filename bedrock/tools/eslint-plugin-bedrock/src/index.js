@@ -17,6 +17,7 @@ import noCrossFeatureXImport from './rules/no-cross-feature-x-import.js';
 import requireServerOnlyOnQueries from './rules/require-server-only-on-queries.js';
 import noUseClientAtPageTop from './rules/no-use-client-at-page-top.js';
 import eventsOnlyFromShared from './rules/events-only-from-shared.js';
+import componentFolderContract from './rules/component-folder-contract.js';
 
 import makeRecommended from './configs/recommended.js';
 
@@ -32,6 +33,7 @@ const plugin = {
     'require-server-only-on-queries': requireServerOnlyOnQueries,
     'no-use-client-at-page-top': noUseClientAtPageTop,
     'events-only-from-shared': eventsOnlyFromShared,
+    'component-folder-contract': componentFolderContract,
   },
   configs: {},
 };

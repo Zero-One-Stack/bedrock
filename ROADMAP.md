@@ -281,6 +281,39 @@ proceeded. An audit pass also found the flagship ESLint plugin broken as shipped
 workflows enabled (paid plans); `eslint-plugin-bedrock` is still not on npm (install by path);
 `audit-design-system --ci` is still not wired into the shipped CI workflow.
 
+## ✅ Phase 7.6 — Design-system structure made deterministic (SHIPPED, v3.2)
+
+The kit already described folder-per-component with a colocated test and story, but the atomic
+grouping was written as **optional** and nothing mechanically enforced the folder shape — so a
+repo could install the kit and still end up with flat files, stories beside them, and every
+unit test in a distant `tests/` tree. Four changes close that.
+
+- ✅ **Atomic grouping is now the DEFAULT, not a per-repo choice** (`component-structure.md`).
+  `shared/ui/{atoms,molecules,organisms}/<component>/` is what an agent applies without asking.
+  A flat layout is now an *Approved override* in `project-specifics.md` — and a repo that is
+  flat today is a **migration target**, not a convention to match.
+- ✅ **`rules/design-system-structure.md`** — the authoritative contract: the folder shape, what
+  goes in each file, the barrel chain, the atomic-level decision table, the flat→folder ratchet,
+  and hard rules.
+- ✅ **`bedrock/component-folder-contract`** (7th ESLint rule) — flags a bare component file in
+  `shared/ui`, a component folder missing its colocated `.test.tsx`/`.stories.tsx`, and
+  non-kebab-case names. Subcomponents inside a folder are correctly exempt. Ships with
+  on-disk fixtures because the sibling check reads the filesystem.
+- ✅ **Scaffolder + audit updated** — `scaffold-component` emits the atomic path by default;
+  `audit-design-system` now looks for **bare files** (a folder-only walk skipped exactly the
+  non-conforming components) before auditing folder contents.
+
+### The trap this surfaced — colocated tests that never run
+
+Studying a real reference repo showed the failure mode that makes colocation worthless: its
+`test:unit` script was glob-bound to `tests/unit/*.test.ts`, so a colocated
+`button.test.tsx` **would never execute** while the suite still reported green. A test that
+passes by not existing reads as coverage.
+
+So the rule, the scaffolder, and the audit all now require verifying the **test-runner glob
+covers the component tree** — and proving it by watching the new test appear in the runner's
+output, not by trusting a green exit code.
+
 ## ▶ Phase 8 — Distribution & adoption (the next frontier)
 
 The kit is now feature-complete vs. the audit; the next gap is **adoption**. Code quality

@@ -1,7 +1,7 @@
 {
   "name": "bedrock",
   "description": "Bedrock — the Zero One Stack Next.js/React engineering kit, one unified standard built on Feature-Sliced Design (FSD). Ship a whole feature with ONE command: /bedrock-ship runs recon → plan → build every unit bottom-up → verify → review → auto-fix, looping until the gates pass. Constitution + rules (feature-sliced-design, architecture, components, tokens, a11y, testing, security, i18n, performance, observability, CI) and enterprise governance (governance, ADRs, tech-radar, compliance); agents (frontend-architect, component-builder, frontend-reviewer, monorepo-architect, adr-author); scaffolding + governance skills; enforcement hooks (incl. a Stop-gate that makes /verify-build non-optional) + eslint-plugin-bedrock + a ready ESLint flat config + Steiger/dependency-cruiser FSD fitness functions; managed-settings; policy-as-code. Run /bedrock:kit-init to copy the constitution, rules, and the cadence runner into the project, then /bedrock:enterprise-init for governance/CI/ADR, and /bedrock:doctor to confirm it's actually enforcing.",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "author": { "name": "Zero One Stack" },
   "homepage": "https://github.com/Zero-One-Stack/bedrock",
   "license": "MIT",

@@ -87,6 +87,7 @@ The "why" and the compliant patterns for each ban are in the rule files below.
 | **One feature must react to another feature's action** and no single parent owns both (fan-out, distance, cross-cutting observer) | **`rules/cross-slice-communication.md`** (the event-bus escape hatch) |
 | Picking the working cadence (brainstorm → plan → execute → review) | `rules/working-cadence.md` |
 | Planning a feature/app before building (Phase 1)     | `rules/architecture.md` (`/architect`) |
+| **Adding/placing a design-system component** (`shared/ui`) — atomic level, the component folder, colocated test + story | **`rules/design-system-structure.md`** |
 | Building/editing a component; its file contract      | `rules/component-structure.md`      |
 | Composing a multi-part component (Tabs/Dialog/Menu); polymorphism (`asChild`); headless behavior library | `rules/component-composition.md` |
 | Building a form; choosing/adding a form primitive (Field, Input, Combobox, …) | `rules/form-primitives.md` |

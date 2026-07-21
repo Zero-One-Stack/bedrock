@@ -1,6 +1,6 @@
 ---
 name: audit-design-system
-description: Audit the repo's shared/ui design system against the kit's contract. Walks every shared/ui component folder and reports gaps: missing stories file, missing test with axe, missing props file, missing public-API export from the slice's index.ts, missing form-primitive from the 15-baseline (form-primitives.md), missing required semantic token group from styling-and-tokens.md, deviations from the atomic placement heuristics (component-structure.md). Use when the user says "audit the design system", "check design-system coverage", "what's missing from shared/ui", periodically as health check, or as a CI fitness function before merging design-system changes.
+description: Audit the repo's shared/ui design system against the kit's contract. Reports bare component files that should be folders (design-system-structure.md), a test-runner glob that would skip colocated tests, then walks every shared/ui component folder for gaps: missing stories file, missing test with axe, missing props file, missing public-API export from the slice's index.ts, missing form-primitive from the 15-baseline (form-primitives.md), missing required semantic token group from styling-and-tokens.md, deviations from the atomic placement heuristics (component-structure.md). Use when the user says "audit the design system", "check design-system coverage", "what's missing from shared/ui", periodically as health check, or as a CI fitness function before merging design-system changes.
 ---
 
 # Audit Design System
@@ -11,7 +11,32 @@ contract. Read first: `.claude/rules/component-structure.md`,
 `.claude/rules/styling-and-tokens.md`, `.claude/rules/accessibility.md`. The audit produces a
 coverage table; gaps fail CI when the script runs as a fitness function.
 
-## What to check (per shared/ui component folder)
+## What to check
+
+### 0. Structure first — bare files and the runner glob
+
+Before auditing folder *contents*, audit the *shape*. A component that is a bare file has no
+folder to audit, so a folder-only walk silently skips exactly the components most likely to be
+non-conforming.
+
+```bash
+# Bare component files sitting directly in shared/ui or an atomic folder — each one is a
+# violation of design-system-structure.md (should be <name>/<name>.tsx).
+find src/shared/ui -maxdepth 2 -name '*.tsx' \
+  ! -name '*.test.tsx' ! -name '*.spec.tsx' ! -name '*.stories.tsx' \
+  ! -name '*.composition.tsx' ! -name 'index.tsx' 2>/dev/null
+```
+
+Report every hit under a **"Not yet a folder"** heading with the target path
+(`atoms/button.tsx` → `atoms/button/button.tsx`). These are migration candidates, not
+individually broken components — see `design-system-structure.md` §7 for the ratchet.
+
+Then confirm the **test-runner glob covers the component tree** (`design-system-structure.md`
+§3). If the repo's `test` script is bound to a separate suite directory, every colocated test
+this audit demands is dead on arrival — **report that first**, because it invalidates the
+"has a test" column below.
+
+### 1. Per component folder
 
 For every folder under `shared/ui/` that contains a `<name>.tsx`, verify:
 
