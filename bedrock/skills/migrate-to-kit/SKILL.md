@@ -1,6 +1,6 @@
 ---
 name: migrate-to-kit
-description: Bring an existing (non-greenfield) React/Next.js repo onto this kit's standard incrementally — Chakra/styled-components → CSS Modules + tokens, Effector/Redux server-state → React Query, loose files → the file-per-concern contract, missing tests → unit + E2E. Produces a phased migration plan and executes it slice by slice, never a risky big-bang rewrite, recording the journey (and any temporary approved exceptions) in project-specifics.md. Use when adopting the kit in a repo that already has code, or when a review finds the repo systematically violates the constitution.
+description: Bring an existing (non-greenfield) React/Next.js repo onto this kit's standard incrementally — ad-hoc folders → Feature-Sliced Design layers/slices, Effector/Redux server-state → React Query, loose files → the file-per-concern contract, scattered design values → a single token source, missing tests → unit + E2E. The kit is engine-agnostic on styling, so this does NOT migrate you off Tailwind, Chakra, or CSS-in-JS — it records your engine in project-specifics.md and fixes the architecture around it. Produces a phased plan and executes it slice by slice, never a big-bang rewrite. Use when adopting the kit in a repo that already has code, or when a review finds the repo systematically violates the constitution.
 ---
 
 # Migrate to Kit

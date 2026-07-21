@@ -18,7 +18,7 @@ import requireServerOnlyOnQueries from './rules/require-server-only-on-queries.j
 import noUseClientAtPageTop from './rules/no-use-client-at-page-top.js';
 import eventsOnlyFromShared from './rules/events-only-from-shared.js';
 
-import recommended from './configs/recommended.js';
+import makeRecommended from './configs/recommended.js';
 
 const plugin = {
   meta: {
@@ -33,9 +33,11 @@ const plugin = {
     'no-use-client-at-page-top': noUseClientAtPageTop,
     'events-only-from-shared': eventsOnlyFromShared,
   },
-  configs: {
-    recommended,
-  },
+  configs: {},
 };
+
+// Built after `plugin` exists so the config can carry the plugin object itself —
+// `bedrock/*` rule names only resolve through `plugins: { bedrock }`.
+plugin.configs.recommended = makeRecommended(plugin);
 
 export default plugin;

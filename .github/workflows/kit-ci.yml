@@ -1,0 +1,82 @@
+# CI for the kit ITSELF (not the consumer-facing template in bedrock/ci/).
+#
+# The kit's thesis is "enforcement, not documentation" — so the enforcement code
+# it ships has to be tested here, or the ESLint rules can rot silently. They did:
+# all six suites were failing on undeclared devDependencies before this existed.
+name: kit-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  eslint-plugin:
+    name: eslint-plugin-bedrock — unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bedrock/tools/eslint-plugin-bedrock
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # `npm install`, not `npm ci` — the package intentionally ships no lockfile
+      # (see its .gitignore) so consumers resolve against their own ESLint major.
+      - name: Install
+        run: npm install
+
+      - name: Test
+        run: npm test
+
+      # Guards the exact P0 that shipped broken: a flat config naming `bedrock/*`
+      # rules must carry `plugins: { bedrock }`, or every consumer install throws
+      # "Could not find plugin". The unit tests import rules directly and would
+      # not have caught it.
+      - name: Smoke-test the recommended flat config
+        run: |
+          cat > smoke.mjs <<'EOF'
+          import { Linter } from 'eslint';
+          import tsParser from '@typescript-eslint/parser';
+          import bedrock from './src/index.js';
+
+          const cfg = bedrock.configs.recommended;
+          if (!cfg.plugins || !cfg.plugins.bedrock) {
+            throw new Error('configs.recommended is missing plugins.bedrock — consumers would crash.');
+          }
+
+          const linter = new Linter();
+          const messages = linter.verify(
+            "import { Thing } from '@/entities/user/ui/thing';\n",
+            [cfg, { files: ['**/*.ts'], languageOptions: { parser: tsParser } }],
+            'src/features/x/ui/a.ts',
+          );
+
+          if (!messages.some((m) => m.ruleId === 'bedrock/no-deep-slice-import')) {
+            throw new Error(
+              'recommended config did not report a known violation: ' + JSON.stringify(messages),
+            );
+          }
+          console.log('OK — recommended config resolves and rules fire.');
+          EOF
+          node smoke.mjs
+
+  workflow-script:
+    name: bedrock-ship workflow — syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The workflow script is executed by the Claude Code runtime, not by us, so
+      # there is no runtime to test against here. Parsing it at least catches a
+      # syntax error before it reaches a user's project.
+      - name: Parse bedrock-ship.js
+        run: node --check bedrock/workflows/bedrock-ship.js

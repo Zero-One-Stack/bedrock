@@ -46,6 +46,10 @@ agent writing a lot of the code — Bedrock is for you.
   CI gates fail the build. The rules hold even when an agent writes 40 files at once.
 - **Built for AI agents.** Ships agents, skills, and slash commands (`/architect`,
   `/component`, `/fe-review`, …) so Claude Code scaffolds correct code on command.
+- **One command ships a feature.** `/bedrock-ship <task>` runs the whole cadence —
+  recon → plan → build every unit bottom-up → verify → review → auto-fix, looping until
+  the gates pass. You describe the feature once instead of re-prompting at every phase,
+  and the plan is written to a file so it can't drift as the build proceeds.
 - **Works across tools.** It also writes an open-format `AGENTS.md`, so Cursor, GitHub
   Copilot, Codex, Aider, Windsurf, and Zed follow the same rules as Claude Code.
 - **Scales with you.** Start as a single app, grow into an Nx monorepo, then into
@@ -105,6 +109,16 @@ gates, decision records, policy-as-code):
 ```text
 /bedrock:enterprise-init
 ```
+
+### Then ship something
+
+```text
+/bedrock-ship add a billing-history widget to the account page
+```
+
+One command runs the full cadence — recon, plan, build each unit bottom-up, verify,
+review, and fix — and reports what passed, what was skipped, and what's still red. Watch
+it with `/workflows`. (`/bedrock:ship` does the same inline if dynamic workflows are off.)
 
 > **Why step 3?** A plugin auto-loads its skills, agents, and commands the moment it's
 > installed — but Claude Code can't auto-load `CLAUDE.md` or `rules/`; those must live

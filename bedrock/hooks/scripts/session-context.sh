@@ -14,6 +14,14 @@ echo "Before generating code you MUST complete the Step 0 Recon gate (see CLAUDE
 echo "rules/project-specifics.md. Honor its Approved overrides; do not silently deviate."
 echo
 
+if ! command -v jq >/dev/null 2>&1; then
+  echo "### ⚠ \`jq\` is NOT installed — write-time enforcement is DISABLED."
+  echo "The PreToolUse ban hook, the audit log, and the verify-build Stop gate all parse hook"
+  echo "JSON with jq and silently no-op without it. Install jq (\`brew install jq\`) to restore"
+  echo "them. CI still catches violations; local write-time blocking does not."
+  echo
+fi
+
 if [[ -f "$ps" ]]; then
   echo "### project-specifics.md is present — read it first for this project's memory."
 else

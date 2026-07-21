@@ -204,6 +204,51 @@ External landscape research surfaced five gaps. All addressed.
   Comparison table with superpowers / compound-engineering; when-to-skip table for trivial
   changes.
 
+## ✅ Phase 7.5 — Orchestration + P0 repairs (SHIPPED, v3.1)
+
+The kit documented a four-phase cadence but shipped **no mechanism to run it** — every arrow
+was a manual re-prompt and the plan lived only in chat scrollback, so it drifted as the build
+proceeded. An audit pass also found the flagship ESLint plugin broken as shipped.
+
+- ✅ **`/bedrock-ship` — the cadence, executed** (`workflows/bedrock-ship.js`): recon → plan →
+  build each unit bottom-up → verify → review → bounded auto-fix loop, all in one command.
+  Recon facts and the ordered unit list are threaded into every subagent prompt (subagents
+  don't inherit conversation context), so the plan can't decay between phases. Reports
+  honestly when it exits still red.
+  **Constraint discovered:** Claude Code loads dynamic workflows **only** from a project's
+  `.claude/workflows/` or `~/.claude/workflows/` — *a plugin cannot ship one*. So `kit-init`
+  copies the payload in, and `/bedrock:ship` provides an inline fallback (plus the
+  `.claude/plans/<slug>.md` plan-file convention) where workflows are unavailable.
+- ✅ **Stop hook makes `/verify-build` real** (`hooks/scripts/require-verify-build.sh`):
+  reads the audit log the PostToolUse hook already wrote (nothing consumed it) and blocks
+  the stop **once** if `src/`/`app/` changed with no verification run. Guards on
+  `stop_hook_active`; no-ops without `jq`.
+- ✅ **P0 — `eslint-plugin-bedrock` was broken as shipped.** `configs.recommended` had an
+  empty `plugins: {}`, so every documented consumer setup threw *"Could not find plugin
+  bedrock"*. Fixed via a factory that receives the built plugin (the object form couldn't
+  reference it without an import cycle). All **6** suites were failing on undeclared
+  devDeps — now green, with `.github/workflows/kit-ci.yml` running them plus a smoke test
+  that asserts the recommended config resolves and fires. (Docs said 5 rules; there are 6.)
+- ✅ **`ci/eslint.config.recommended.js`** — governance.md said "everything else composes
+  from the ecosystem" with no artifact behind it. Now shipped: `jsx-a11y` +
+  `typescript-eslint` + `import/no-cycle` + `@next/next` + `no-restricted-syntax` for
+  `export *`, converting ~8 reviewer-only hard bans into deterministic gates. Wired into
+  `enterprise-init`.
+- ✅ **Honesty pass on false claims.** `/verify-build` never ran Steiger despite five files
+  saying it did — added as step 3. Six rows of governance.md's enforcement matrix asserted
+  CI/ESLint checks that don't exist — corrected, with a ◐ legend and the missing rows added.
+  `migrate-to-kit`'s description still told Chakra users to migrate off, contradicting the
+  engine-agnostic constitution. The last "Hook-blocked" survivor is gone.
+- ✅ **`/bedrock:doctor`** — diagnoses silent non-enforcement (missing `jq`, unwired ESLint,
+  absent Steiger config), the kit's most common failure mode. Reports ENFORCED / DEGRADED /
+  MISSING per layer and names which bans currently rest on the reviewer alone.
+- ✅ **`jq` warning in `session-context.sh`** — its absence silently voided all write-time
+  enforcement; now surfaced at session start.
+
+**Known limits (not overclaimed):** `/bedrock-ship` needs Claude Code ≥ 2.1.154 with dynamic
+workflows enabled (paid plans); `eslint-plugin-bedrock` is still not on npm (install by path);
+`audit-design-system --ci` is still not wired into the shipped CI workflow.
+
 ## ▶ Phase 8 — Distribution & adoption (the next frontier)
 
 The kit is now feature-complete vs. the audit; the next gap is **adoption**. Code quality
@@ -242,6 +287,10 @@ ships the FSD + tokens + theming + testing + governance architecture on top.)
   Codex / Aider / Windsurf / Zed / Claude Code).
 
 ### 8.3 — npm publish (`eslint-plugin-bedrock`)
+
+> **Unblocked as of v3.1.** The recommended config crashed on load and all six test suites
+> were failing; publishing that would have burned the credibility Phase 8 exists to build.
+> Both are fixed and now covered by `kit-ci.yml`. Safe to publish.
 
 - ◻ **Reserve the `eslint-plugin-bedrock` package name** on npm (the current code lives in
   `bedrock/tools/eslint-plugin-bedrock/`; consumers install via `file:` or git URL today).

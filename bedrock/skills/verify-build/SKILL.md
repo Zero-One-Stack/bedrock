@@ -1,6 +1,6 @@
 ---
 name: verify-build
-description: Close the loop after generating or editing code — prove it actually compiles, that every referenced design token resolves, that no circular dependency was introduced, and that lint/format/tests pass, using the repo's real scripts (never invented ones). Use after scaffolding a component or service, before declaring any change "done", or when a review needs evidence the change is sound. This is the enforcement end of the Step 0 Recon gate.
+description: Verify a change actually works — prove it compiles, the FSD layer boundaries hold (Steiger + dependency-cruiser), every referenced design token resolves, no circular dependency was introduced, and lint/format/tests pass, using the repo's real scripts (never invented ones). Use when the user says "verify", "does this build", "check it compiles", "prove it works", "run the checks", "is this done", after scaffolding a component or service, before declaring ANY change done, or when a review needs evidence. This is the enforcement end of the Step 0 Recon gate.
 ---
 
 # Verify Build
@@ -48,7 +48,26 @@ Any referenced var missing from the generated output is a **failure** — the st
 resolves to nothing. Fix by using the correct existing token or adding one via
 `/add-design-token`. Never hand-edit the generated CSS.
 
-## 3. No circular dependency
+## 3. FSD architecture holds (Steiger + dependency-cruiser)
+
+This is the check the kit is built around — the layer direction and the public-API barrier.
+Run whichever the repo has configured; run **both** when both exist:
+
+```bash
+npx steiger ./src                 # the official FSD linter — layer order, slice isolation,
+                                  # public-API sidestep, segments-by-purpose, insignificant slices
+npx depcruise src --config .dependency-cruiser.cjs   # layer direction + cycles, as a second opinion
+```
+
+A violation here is a **failure**, not a warning: an upward import, a same-layer slice import
+(except an `@x` cross-import on `entities`), or a deep import past a slice's `index.ts` all
+break the constitution's import rule.
+
+If neither tool is configured in this repo, **say so explicitly in the report** rather than
+reporting a silent pass — an unconfigured architecture check is an unverified architecture,
+and `enterprise-init` ships configs for both.
+
+## 4. No circular dependency
 
 Run the repo's cycle check (see `rules/component-structure.md`):
 
@@ -56,23 +75,23 @@ Run the repo's cycle check (see `rules/component-structure.md`):
 npx madge --circular --extensions ts,tsx src   # or the repo's configured tool
 ```
 
-Or rely on `import/no-cycle` if it's in the ESLint config (it surfaces in step 4), or Nx's
+Or rely on `import/no-cycle` if it's in the ESLint config (it surfaces in step 5), or Nx's
 boundary check in an Nx workspace. **A newly-introduced cycle — especially a barrel re-export
 loop — is a failure.** Fix by importing the sibling via its leaf path, or by lifting the shared
 piece to a lower layer.
 
-## 4. Lint + format clean
+## 5. Lint + format clean
 
 Run **lint** and **format** (check mode). Fix at the source — don't blanket-disable rules. A
 scoped, justified `// eslint-disable-next-line <rule> -- reason` is the only exception.
 
-## 5. Tests green — both layers
+## 6. Tests green — both layers
 
-**5a. Unit/integration:** run the affected tests with the repo's runner (jest/vitest). New/changed
+**6a. Unit/integration:** run the affected tests with the repo's runner (jest/vitest). New/changed
 code keeps coverage ≥ 80% (90%+ on new code). Loading/empty/error states covered for data
 components; an axe assertion present for UI.
 
-**5b. E2E:** run the repo's `e2e` script (Playwright). For a user-facing feature, confirm at least
+**6b. E2E:** run the repo's `e2e` script (Playwright). For a user-facing feature, confirm at least
 one journey test exists and passes. If the change adds a feature/flow with **no** E2E spec, that's
 a failure — flag it (and, in a build context, write the missing flow per `rules/testing.md`). If
 E2E genuinely can't run here (no browser/sandbox), say so and mark that step unverified — don't
@@ -81,5 +100,5 @@ imply it passed.
 ## Report
 
 State exactly which command you ran for each step and its result. If a check has no script,
-say so and what you ran instead. **Do not report "done" unless 1–5 all pass** — if something
+say so and what you ran instead. **Do not report "done" unless 1–6 all pass** — if something
 fails, report the failure and the fix, not a green summary.

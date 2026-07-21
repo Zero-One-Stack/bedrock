@@ -168,9 +168,12 @@ Then in Claude Code:
 The kit ships the governance layer in-box — apply it with `/bedrock:enterprise-init`:
 
 - **Layered enforcement, not just docs:** deterministic `hooks/` block banned patterns at
-  write time; **`tools/eslint-plugin-bedrock/`** (5 rules covering deep slice imports,
+  write time; **`tools/eslint-plugin-bedrock/`** (6 rules covering deep slice imports,
   cross-feature `@x`, primitive token use in components, missing `server-only` on entity
-  queries, `'use client'` at a page top) backstops existing code; CI **fitness functions**
+  queries, `'use client'` at a page top, event emitters outside `shared/lib/events`) plus
+  **`ci/eslint.config.recommended.js`** (the ecosystem half — `jsx-a11y`,
+  `typescript-eslint`, `import/no-cycle`, `@next/next`, no `export *`) backstops existing
+  code; CI **fitness functions**
   (`ci/`: boundaries/cycles, token coverage, Web-Vitals + a11y budget, SBOM, ADR-reference
   gate) catch tree-wide violations regardless of source; `frontend-reviewer` reads the diff.
   See `rules/governance.md` § "The enforcement matrix" for what catches what and the

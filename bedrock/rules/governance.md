@@ -50,16 +50,22 @@ type and on commit, Steiger/dependency-cruiser/OPA in CI, and the `frontend-revi
 on every diff. The layers are designed to backstop each other — **no single layer is a
 guarantee**, and writing prose as if it were is overclaiming.
 
-The kit ships `eslint-plugin-bedrock` at `tools/eslint-plugin-bedrock/` covering the five
-rules the ecosystem doesn't have a great match for. See its README for setup; everything
-else composes from `eslint-plugin-boundaries`, `eslint-plugin-import`,
-`eslint-plugin-jsx-a11y`, and `no-restricted-imports`.
+The kit ships `eslint-plugin-bedrock` at `tools/eslint-plugin-bedrock/` covering the six
+rules the ecosystem doesn't have a great match for. Everything else composes from the
+ecosystem — and the kit now ships that composition as a working flat config at
+**`ci/eslint.config.recommended.js`** (`eslint-plugin-bedrock` + `jsx-a11y` +
+`typescript-eslint` + `import/no-cycle` + `@next/next` + `no-restricted-syntax`). Copy it to
+the project root as `eslint.config.js`. Without it, every row below whose only ✓ is in the
+ESLint column falls back to the reviewer agent — a non-deterministic gate.
+
+Legend: **✓** enforced · **◐** partial or requires project configuration · **—** not enforced
+at this layer.
 
 | Rule | Hook (write-time) | ESLint/Stylelint | Steiger/dep-cruiser/OPA (CI) | Reviewer agent |
 | --- | --- | --- | --- | --- |
 | Deep slice import past `index.ts` | ✓ (Edit/Write/MultiEdit) | ✓ `bedrock/no-deep-slice-import` | ✓ (Steiger `fsd/no-public-api-sidestep`) | ✓ |
 | `@x` on `features/widgets/pages` | ✓ | ✓ `bedrock/no-cross-feature-x-import` | ✓ (Steiger `fsd/forbidden-imports`) | ✓ |
-| Event emitter built outside `shared/lib/events` (a slice's own bus) | — | ✓ `bedrock/events-only-from-shared` | ✓ (no event-lib import outside the events dir) | ✓ |
+| Event emitter built outside `shared/lib/events` (a slice's own bus) | — | ✓ `bedrock/events-only-from-shared` | — (no CI check — ESLint is the only mechanical gate) | ✓ |
 | Off-contract / wrong-payload bus event | — | ✓ (typecheck — `emit`/`on` generic over `AppEventName`) | — | ✓ |
 | Bus misuse (state/command/request-response on the bus; event where the cache would do) | — | — | — | ✓ (judgment — `cross-slice-communication.md`) |
 | `'use client'` at root `app/**/page.tsx` or page slice screen | ✓ (Write only — file shape needed) | ✓ `bedrock/no-use-client-at-page-top` | — | ✓ |
@@ -67,13 +73,21 @@ else composes from `eslint-plugin-boundaries`, `eslint-plugin-import`,
 | Feature `*.action.ts` missing `'use server';` as first statement | ✓ (Write only) | — (Next refuses to expose it) | — | ✓ |
 | Same-layer slice imports | — | ✓ (`eslint-plugin-boundaries`) | ✓ (Steiger `fsd/forbidden-imports`) | ✓ |
 | Circular dependencies / barrel cycles | — | ✓ (`import/no-cycle`) | ✓ (`madge --circular`, dep-cruiser) | ✓ |
-| Primitive token use in components | — | ✓ `bedrock/no-primitive-token-in-component` | ✓ (`check-token-coverage.sh` for CSS engines) | ✓ |
+| Primitive token use in components | — | ✓ `bedrock/no-primitive-token-in-component` | — (`check-token-coverage.sh` greps literal hex/px only — it cannot tell a primitive token from a semantic one) | ✓ |
 | Banned dependencies (Effector/Redux for server state) | ✓ (import string match) | ✓ (`no-restricted-imports`) | ✓ (OPA/Conftest on `package.json`) | ✓ |
 | Missing `@deprecated` JSDoc on retired exports | — | ✓ (`eslint-plugin-deprecation`) | — | ✓ |
-| `process.env` outside `shared/config` | — | ✓ (`no-restricted-imports` + custom rule) | ✓ (grep step in fitness) | ✓ |
+| `process.env` outside `shared/config` | — | ✓ (`no-restricted-properties`, in `ci/eslint.config.recommended.js`) | — (no CI grep step) | ✓ |
 | Banned styling engine (the kit's old ban — now removed) | — | — | — | — (engine choice is now project-level, `styling-engine.md`) |
-| Missing test for changed component | — | — | ✓ (coverage threshold in CI) | ✓ |
-| Storybook story + a11y for new component | — | — | ✓ (audit-design-system skill in `--ci` mode) | ✓ |
+| Missing test for changed component | — | — | ◐ (CI runs the test script; the coverage threshold must be set in the repo's jest/vitest config — the kit ships no threshold) | ✓ |
+| Storybook story + a11y for new component | — | — | ◐ (`/bedrock:audit-design-system --ci` exists but is NOT wired into the shipped workflow — run it manually or add a step) | ✓ |
+| `any` / unchecked `as` cast | — | ✓ (`@typescript-eslint/no-explicit-any` + `no-unsafe-*`, in `ci/eslint.config.recommended.js`) | — | ✓ |
+| Inaccessible UI (`<div onClick>`, no focus ring, color-only) | — | ✓ (`jsx-a11y`, in `ci/eslint.config.recommended.js`) | ◐ (Lighthouse a11y budget catches some) | ✓ |
+| Raw `<img>` / third-party font `<link>` | — | ✓ (`@next/next/no-img-element`, `no-page-custom-font`) | — | ✓ |
+| `_blank` without `rel="noopener"` | — | ✓ (`react/jsx-no-target-blank`) | — | ✓ |
+| Barrels that `export *` | — | ✓ (`no-restricted-syntax: ExportAllDeclaration`) | — | ✓ |
+| Auth tokens in `localStorage` | — | ✓ (`no-restricted-globals`) | — | ✓ |
+| Hardcoded user-facing strings (i18n) | — | ◐ (`react/jsx-no-literals`, warn-only on `ui/**`; prefer `eslint-plugin-i18next` if installed) | — | ✓ |
+| Business terminology in `shared`; mutation/action button in an entity; testing implementation details; desktop-first breakpoints | — | — | — | ✓ (judgment — irreducible to a linter) |
 
 ### Honest limits — what hooks CANNOT enforce
 

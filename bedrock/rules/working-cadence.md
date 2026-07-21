@@ -1,5 +1,17 @@
 # Rule: Working cadence — how to ship a change with this kit
 
+> ## Run it in one command
+>
+> This file describes the rhythm. **`/bedrock-ship <task>` executes it** — recon → plan →
+> build each unit bottom-up → verify → review → auto-fix, looping until the gates pass,
+> without you re-prompting at each phase. `/bedrock:kit-init` installs the runner at
+> `.claude/workflows/bedrock-ship.js` (Claude Code loads dynamic workflows only from a
+> project directory, so a plugin can't ship one directly).
+>
+> If dynamic workflows aren't available, `/bedrock:ship` runs the same phases inline and
+> writes the plan to `.claude/plans/<slug>.md`. **Read on for what each phase must produce**
+> — the runner follows this rule, it doesn't replace it.
+
 > **Recommended (not mandated).** The kit's standards are enforced; this file is the
 > **working rhythm** that strings them together. Compared to methodology kits like
 > [superpowers](https://github.com/obra/superpowers) or
@@ -90,6 +102,14 @@ phase. It reads `architecture.md`, `feature-sliced-design.md`, `component-struct
 
 **Phase 2 output:** the six-section plan, ending with the **first concrete command** to run.
 For multi-app questions, use `/monorepo` (monorepo-architect) instead.
+
+> **Write the plan to a file — `.claude/plans/<slug>.md`.** This is the rule that makes the
+> cadence hold together. A plan that lives only in chat scrollback decays: by the fourth
+> unit the builder has drifted from the placement decisions the plan made, which is exactly
+> the drift the kit exists to prevent. The build order goes in as checkboxes, ticked as each
+> unit lands, and Phase 4's findings are appended to the same file. `frontend-architect` and
+> `frontend-reviewer` are deliberately read-only agents, so **the orchestrator writes the
+> file on their behalf** — `/bedrock-ship` does this automatically.
 
 > **The planner plans; it does not write code.** Resist asking the architect to "just
 > implement it" — that's the next phase, and the planning artifact is what makes the

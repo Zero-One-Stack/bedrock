@@ -47,6 +47,13 @@ cp -R "$SRC"/docs/external-references/* ./.claude/docs/external-references/
 
 # The constitution
 cp "$SRC/CLAUDE.md" "./.claude/CLAUDE.md"
+
+# The cadence runner. Claude Code loads dynamic workflows ONLY from a project's
+# .claude/workflows/ (or ~/.claude/workflows/) — a plugin cannot ship one, so it
+# has to be copied in. This is what makes /bedrock-ship a single command instead
+# of a dozen re-prompts.
+mkdir -p ./.claude/workflows
+cp "$SRC/workflows/bedrock-ship.js" ./.claude/workflows/bedrock-ship.js
 ```
 
 Then run `/bedrock:agents-md-export` to produce `./AGENTS.md` at the project root for non-Claude
@@ -57,7 +64,10 @@ project, follow with `/bedrock:enterprise-init` to wire the governance/hooks/ADR
 ## Done when
 
 `./.claude/CLAUDE.md` + `./.claude/rules/*.md` + `./.claude/docs/external-references/*.md` +
-`./AGENTS.md` all exist, `project-specifics.md` is preserved (or seeded from template if new),
-and the agent can read the constitution and the bundled reference snippets locally without
-WebFetch. Report files written vs. preserved. On the project's first real task, the Step 0
-Recon gate fills `project-specifics.md`.
+`./.claude/workflows/bedrock-ship.js` + `./AGENTS.md` all exist, `project-specifics.md` is
+preserved (or seeded from template if new), and the agent can read the constitution and the
+bundled reference snippets locally without WebFetch. Report files written vs. preserved. On the
+project's first real task, the Step 0 Recon gate fills `project-specifics.md`.
+
+Tell the user they can now ship a whole feature with **`/bedrock-ship <task>`** (or
+`/bedrock:ship`, which falls back to an inline cadence if dynamic workflows are unavailable).

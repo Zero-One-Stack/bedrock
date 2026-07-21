@@ -52,6 +52,21 @@ gaps.
    (adapt path globs to the real layout) and `${CLAUDE_PLUGIN_ROOT}/ci/github-actions-enterprise.yml`
    to `.github/workflows/ci.yml` (adapt script names). Ensure `size-limit`, an a11y check, and
    `@cyclonedx/cyclonedx-npm` are wired.
+4b. **ESLint — the deterministic layer.** Copy
+   `${CLAUDE_PLUGIN_ROOT}/ci/eslint.config.recommended.js` to the repo root as
+   `eslint.config.js` (merge if one exists), then install its peers:
+
+   ```bash
+   npm i -D eslint @eslint/js typescript-eslint eslint-plugin-jsx-a11y \
+            eslint-plugin-import eslint-plugin-react @next/eslint-plugin-next
+   npm i -D "${CLAUDE_PLUGIN_ROOT}/tools/eslint-plugin-bedrock"   # not yet on npm
+   ```
+
+   **Don't skip this.** Roughly a dozen hard bans in `CLAUDE.md` (`any`, `export *` barrels,
+   `<div onClick>`, raw `<img>`, `_blank` without `rel`, `process.env` outside
+   `shared/config`, tokens in `localStorage`) are enforced *only* by this config. Without it
+   they fall back to the reviewer agent, which is non-deterministic — see the enforcement
+   matrix in `governance.md`. Verify with `npx eslint --print-config src/app/page.tsx | head`.
 5. **Seed memory:** if `rules/project-specifics.md` is the bare template, run the Recon gate and fill
    its cache; add a *This project* note that the enterprise overlay is applied + which compliance
    regime applies (record client-specific HIPAA/PCI/PIPEDA as a Tier-0 project constraint).

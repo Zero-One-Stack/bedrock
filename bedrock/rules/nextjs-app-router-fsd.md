@@ -126,7 +126,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 ### `app/<route>/page.tsx` — thin re-export (default + at most ONE of `metadata`/`generateMetadata`)
 
 ```tsx
-// app/active-grievances/page.tsx — zero logic. Hook-blocked if it contains 'use client'.
+// app/active-grievances/page.tsx — zero logic. 'use client' here is caught by layered
+// enforcement (write-time hook + eslint-plugin-bedrock) — see governance.md's matrix.
 export { ActiveGrievancesPage as default } from '@/pages/active-grievances/routing';
 
 // Either static metadata:

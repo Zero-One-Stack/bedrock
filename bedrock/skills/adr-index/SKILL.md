@@ -1,6 +1,6 @@
 ---
 name: adr-index
-description: Generate or refresh docs/adr/README.md — a rollup index of all Architecture Decision Records (number, title, status, date, supersedes/superseded links). Use after creating or superseding an ADR, or periodically, so the agent and humans can see all decisions at a glance instead of opening each file. Keeps the durable memory navigable as it grows.
+description: Generate or refresh docs/adr/README.md — a rollup index of all Architecture Decision Records (number, title, status, date, supersedes/superseded links). Use when the user says "list the ADRs", "what decisions have we made", "index the ADRs", "show me the decision records", "what did we decide about X", after creating or superseding an ADR, or periodically, so the agent and humans can see all decisions at a glance instead of opening each file. Keeps the durable memory navigable as it grows.
 ---
 
 # adr-index — roll up the ADRs into a navigable index
