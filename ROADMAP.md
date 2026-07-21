@@ -42,19 +42,51 @@ to *enforced gates* and from *mutable notes* to *durable, propagating memory*.
 
 ---
 
-## ▶ Phase 2 — Make it real on actual projects (NEXT — the real frontier)
+## ◐ Phase 2 — Make it real on actual projects (IN PROGRESS — pilot audited 2026-07-21)
 
 The kit is built; now prove it on the portfolio.
 1. ◐ **Stand up the kits repo + marketplace.** *Repo published at `Zero-One-Stack/bedrock`.*
    Remaining: pin versions in `marketplace.json` per release. *(Unblocks one-command install.)*
-2. **Onboard one pilot project end-to-end** (Sertus or Verx): `kit-init` → `enterprise-init` →
-   adapt the CI workflow's script names/path globs to the real repo → green gate. Capture friction.
-3. **Deploy `managed-settings.json` to your machine(s)** via the OS path; tune the deny/ask lists
-   to your real tools before locking. *(Activates the Tier-0 floor.)*
-4. **Backfill ADRs** for the pilot's already-made big decisions, so the durable memory isn't empty.
+2. ◐ **Onboard one pilot project end-to-end — verx.** Constitution + 34 rules installed
+   (coexisting with verx's own Orchestrator, no collisions), 8 real ADRs incl.
+   `0002-adopt-bedrock-kit`, v3.1 cadence runner installed, Recon cache now filled with
+   verified facts. **Not yet green** — see the finding below.
+3. ◻ **Deploy `managed-settings.json` to your machine(s)** via the OS path; tune the deny/ask
+   lists to your real tools before locking. *(Activates the Tier-0 floor.)*
+4. ✅ **Backfill ADRs** — verx has 8. *(Hygiene: two duplicate template files, mixed 3-/4-digit
+   numbering.)*
 
-**Done when:** one project runs the full Plan→Build→Verify→Review loop with hooks live and a green
-enterprise CI gate, and you've felt where the docs need tightening.
+### The pilot's headline finding — "configured but inert"
+
+**verx has bedrock's FSD configs but no FSD structure, and no FSD enforcement actually runs.**
+`steiger.config.ts` and `.dependency-cruiser.cjs` are present, but neither package is
+installed, both CI steps are commented out, and `eslint-plugin-bedrock` was never added to
+`eslint.config.mjs`. Meanwhile `src/` is `components/ hooks/ lib/ contexts/` — essence-named
+folders the constitution names as a hard ban. There are no `entities/features/widgets/shared/`
+layers at all.
+
+This is the single most useful thing the pilot has surfaced, and it generalizes:
+
+- **Installing the kit ≠ enforcing the kit.** Every FSD claim in the repo was decorative. A
+  user would reasonably believe they were covered. This is precisely the failure mode
+  `/bedrock:doctor` (v3.1) was built for — and running its checks against verx caught all of
+  it, so the skill is validated against a real repo.
+- **The kit had no adoption-order guidance.** Turning Steiger on in verx today would fail the
+  build on nearly every file. The right order is **migrate → then enforce**, but nothing in
+  the docs said so; `enterprise-init` happily drops configs into a repo that can't satisfy
+  them. → **Action: `migrate-to-kit` and `enterprise-init` must state the ordering and warn
+  when FSD configs are installed into a non-FSD tree.**
+- **`kit-init` doesn't install the enforcement layer.** The ESLint recipe and the FSD linters
+  are opt-in via `enterprise-init`, which a repo can skip while still looking "kitted".
+
+**Also found in verx:** no E2E harness and no axe dependency — so the "both test layers" and
+a11y hard bans are currently unsatisfiable there; and no `import/no-cycle`/`madge`, so
+`/verify-build`'s cycle gate has nothing to run.
+
+**Done when:** one project runs the full Plan→Build→Verify→Review loop with hooks live and a
+green enterprise CI gate, and you've felt where the docs need tightening.
+*(Next concrete step: run `/bedrock-ship` on a small real verx change to exercise the runner
+end-to-end, then start the FSD migration behind it.)*
 
 ## ✅ Phase 3 — Harden enforcement (SHIPPED)
 

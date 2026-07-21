@@ -46,8 +46,34 @@ grep -qr "jsx-a11y" eslint.config.* 2>/dev/null \
   && echo "OK  jsx-a11y wired" || echo "NOT WIRED  → a11y bans fall back to the reviewer"
 
 echo "=== 6. FSD architecture linters ==="
-test -f steiger.config.ts && echo "OK  steiger.config.ts" || echo "MISSING steiger config"
-test -f .dependency-cruiser.cjs && echo "OK  .dependency-cruiser.cjs" || echo "MISSING dep-cruiser config"
+# A config file is NOT a gate. Check the config, the installed binary, AND the CI step —
+# the pilot found all three out of sync (config present, package absent, CI commented out).
+test -f steiger.config.ts && echo "config  steiger.config.ts" || echo "MISSING steiger config"
+test -f .dependency-cruiser.cjs && echo "config  .dependency-cruiser.cjs" || echo "MISSING dep-cruiser config"
+ls node_modules/.bin/steiger >/dev/null 2>&1 \
+  && echo "OK    steiger installed" \
+  || echo "INERT steiger config present but package NOT installed → nothing runs"
+ls node_modules/.bin/depcruise >/dev/null 2>&1 \
+  && echo "OK    dependency-cruiser installed" \
+  || echo "INERT dep-cruiser config present but package NOT installed → nothing runs"
+# Match only ACTIVE run-steps: strip the "file:line:" prefix, drop commented lines, and
+# require an actual invocation. A commented-out step and an incidental path-regex mention
+# both look like a hit to a naive grep — that produces a false "enforced".
+grep -rhn "steiger\|depcruise" .github/workflows/*.yml 2>/dev/null \
+  | sed -E 's/^[0-9]+://' \
+  | grep -vE "^\s*#" \
+  | grep -qE "run:|pnpm|npx|yarn" \
+  && echo "OK    actively invoked in CI" \
+  || echo "NOT IN CI (absent or commented out) → no merge gate"
+
+echo "=== 6b. Is this repo even FSD-shaped? ==="
+found=0
+for d in entities features widgets shared pages; do
+  test -d "src/$d" && { echo "  has src/$d"; found=1; }
+done
+[ "$found" -eq 0 ] && echo "  NO FSD layers → repo is PRE-MIGRATION. Enabling the FSD gates now
+  would fail on nearly every file. Route to /bedrock:migrate-to-kit and enable the gates per
+  migrated slice instead."
 
 echo "=== 7. Governance / ADR ==="
 test -d docs/adr && echo "OK  docs/adr ($(find docs/adr -name '[0-9]*.md' 2>/dev/null | wc -l | tr -d ' ') records)" \

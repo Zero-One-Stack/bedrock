@@ -52,6 +52,37 @@ gaps.
    (adapt path globs to the real layout) and `${CLAUDE_PLUGIN_ROOT}/ci/github-actions-enterprise.yml`
    to `.github/workflows/ci.yml` (adapt script names). Ensure `size-limit`, an a11y check, and
    `@cyclonedx/cyclonedx-npm` are wired.
+
+   > ### ⚠ Migrate before you enforce — check the tree FIRST
+   >
+   > Copying FSD configs into a repo that has no FSD structure produces **decorative
+   > enforcement**: configs present, packages uninstalled, CI steps commented out, and a team
+   > that believes it's covered. This was the pilot's headline finding (ROADMAP Phase 2).
+   >
+   > Before writing any FSD config, check the tree:
+   >
+   > ```bash
+   > for d in entities features widgets shared pages; do
+   >   test -d "src/$d" && echo "has src/$d"
+   > done
+   > ```
+   >
+   > **No layers found** → the repo is pre-migration. Do **not** enable Steiger or
+   > dependency-cruiser; they would fail on nearly every file and get switched off (or
+   > commented out) within a day, which is worse than not installing them. Instead:
+   > 1. Say so plainly, and record it in `project-specifics.md`.
+   > 2. Route to **`/bedrock:migrate-to-kit`** for the incremental "divide by pages first" path.
+   > 3. Turn the gates on **per migrated slice**, so the ratchet only ever tightens.
+   >
+   > **Layers found** → install the packages and *uncomment the CI steps in the same change*:
+   >
+   > ```bash
+   > pnpm add -D steiger @feature-sliced/steiger-plugin dependency-cruiser
+   > pnpm exec steiger ./src        # must actually run before you claim the gate
+   > ```
+   >
+   > A config file that no installed binary reads is not a gate. Verify with
+   > **`/bedrock:doctor`**, which reports `config present / NOT installed → inert`.
 4b. **ESLint — the deterministic layer.** Copy
    `${CLAUDE_PLUGIN_ROOT}/ci/eslint.config.recommended.js` to the repo root as
    `eslint.config.js` (merge if one exists), then install its peers:
